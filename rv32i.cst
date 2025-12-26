@@ -1,0 +1,8 @@
+// Edited from https://github.com/YosysHQ/apicula/blob/master/examples/tangnano20k.cst
+
+IO_LOC  "clk" 4;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+CLOCK_LOC "clk" BUFG;
+
+IO_LOC  "rst" 88;
+IO_PORT "rst" IO_TYPE=LVCMOS33;
