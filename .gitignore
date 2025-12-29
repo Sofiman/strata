@@ -2,3 +2,4 @@
 *.pnr.json
 *.synth.json
 *.fs
+*.out
