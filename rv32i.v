@@ -13,15 +13,16 @@ module rv32i (
     // ALU
     reg [2:0] alu_op;
     reg alu_op_alt;
-    wire [31:0] alu_a;
+    reg [31:0] alu_a;
     reg [31:0] alu_b;
     (* keep *) wire [31:0] alu_out;
 
     // Register File
     reg wr__en;
+    wire [31:0] rf_a;
     wire [31:0] rf_b;
 
-    // Decoder
+    // Decode
     wire [2:0] inst_fmt;
     wire [6:0] funct7;
     wire [4:0] rs2;
@@ -48,7 +49,7 @@ module rv32i (
         .wr__addr(rd),
 
         .porta__addr(rs1),
-        .porta__read_data(alu_a),
+        .porta__read_data(rf_a),
 
         .portb__addr(rs2),
         .portb__read_data(rf_b)
@@ -104,19 +105,36 @@ module rv32i (
         pc_next <= pc;
         wr__en <= 0;
 
+        alu_op <= funct3;
+        alu_op_alt <= 0;
+        alu_a <= rf_a;
+        alu_b <= rf_b;
+        case (opcode[6:2])
+            OP: alu_op_alt <= funct7[5]; // 0x20 -- SUB/SRA
+            OP_IMM: alu_op_alt <= funct3 == 0 ? 0 : i_imm[10]; // 0x20 -- SLLI/SRLI/SRAI
+            LUI: begin
+                // rd =  0 + (imm << 12)
+                alu_op <= /* ADD */ 0;
+                alu_a <= 0;
+            end
+            AUIPC: begin
+                // rd = PC + (imm << 12)
+                alu_op <= /* ADD */ 0;
+                alu_a <= pc;
+            end
+            default: begin
+                // TODO
+            end
+        endcase
+
         case (inst_fmt)
             R_TYPE: alu_b <= rf_b;
             I_TYPE: alu_b <= i_imm;
             S_TYPE: alu_b <= sb_imm;
-            // TODO: B, U, J
-            default: alu_b <= rf_b;
-        endcase
-
-        alu_op <= funct3;
-        case (opcode[6:2])
-            OP: alu_op_alt <= funct7[5]; // 0x20 -- SUB/SRA
-            OP_IMM: alu_op_alt <= i_imm[10]; // 0x20 -- SLLI/SRLI/SRAI
-            default: alu_op_alt <= 0;
+            U_TYPE: alu_b <= uj_imm;
+            default: begin
+                // TODO: B, J
+            end
         endcase
 
         case (state)
