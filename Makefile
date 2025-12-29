@@ -6,7 +6,7 @@ CONSTRAINT_FILE := rv32i.cst
 	yosys -p "read_verilog $^; synth_gowin -top $* -json $@ -family gw2a"
 
 %.pnr.json: %.synth.json $(CONSTRAINT_FILE)
-	nextpnr-himbaechel --json $< --write $@ --freq 300 --device GW2AR-LV18QN88C8/I7 --vopt family=GW2A-18C --vopt cst=$(CONSTRAINT_FILE) 
+	nextpnr-himbaechel --json $< --write $@ --freq 200 --device GW2AR-LV18QN88C8/I7 --vopt family=GW2A-18C --vopt cst=$(CONSTRAINT_FILE)
 
 %.fs: %.pnr.json
 	gowin_pack -d GW2A-18C -o $@ $<
@@ -26,12 +26,14 @@ CONSTRAINT_FILE := rv32i.cst
 
 # --- Simulation
 
-%_tb.out: %_tb.v %.v
-	iverilog -o $@ -D VCD_OUTPUT=$*_tb $*_tb.v $*.v
+%_tb.out: %_tb.v $(filter-out $(wildcard *_tb.v),$(wildcard *.v))
+	iverilog -o $@ -D VCD_OUTPUT=$*_tb $^
 
 %_tb.vcd: %_tb.out
 	./$<
-	surfer $*_tb.vcd
+
+%_tb.wave: %_tb.vcd
+	surfer $@
 
 clean:
 	$(RM) *.pnr.json *.synth.json *.vcd *.out *.fs
