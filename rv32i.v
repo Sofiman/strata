@@ -6,9 +6,16 @@ module rv32i (
     output reg [5:0] leds
 );
 
-    reg [31-2:0] pc;
-    reg [31-2:0] pc_next;
-    wire [31:0] inst;
+    // ROM
+    wire data_valid_next;
+    reg data_valid;
+
+    // Fetch
+    reg [31:0] pc;
+    reg [31:0] pc_next;
+    reg [31:0] pc_to_load;
+    reg [31:0] inst;
+    wire [31:0] inst_next;
 
     // ALU
     reg [2:0] alu_op;
@@ -37,8 +44,9 @@ module rv32i (
     rom inst_mem (
         .rst(rst),
         .clk(clk),
-        .addr(pc),
-        .data(inst)
+        .addr(pc_to_load),
+        .data(inst_next),
+        .data_valid(data_valid_next)
     );
 
     register_file rf (
@@ -137,13 +145,19 @@ module rv32i (
             end
         endcase
 
+        state_next <= state;
+        pc_to_load <= pc;
         case (state)
             S_FETCH_DECODE: begin
-                state_next <= S_EXECUTE;
+                if (data_valid) begin
+                    state_next <= S_EXECUTE;
+                    pc_to_load <= pc + 1;
+                end
             end
             S_EXECUTE: begin
                 state_next <= S_FETCH_DECODE;
                 pc_next <= pc + 1;
+                pc_to_load <= pc + 1;
 
                 case (inst_fmt)
                     R_TYPE, I_TYPE, U_TYPE: wr__en <= 1;
@@ -155,12 +169,17 @@ module rv32i (
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            state <= S_EXECUTE;
-            pc <= 0;
+            state <= S_FETCH_DECODE;
+            pc <= 32'h40000000;
             leds <= 0;
+            inst <= 'h13;
         end else begin
             state <= state_next;
             pc <= pc_next;
+            inst <= inst_next;
+            data_valid <= data_valid_next;
+
+            leds[0] <= ^alu_out;
         end
     end
 
