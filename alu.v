@@ -49,12 +49,13 @@ module alu (
             end
             OP_SRL: begin
                 if (op_alt) begin
-                    tmp_out <= a >>> b[4:0];
+                    tmp_out <= $signed(a) >>> b[4:0];
                 end else begin
                     tmp_out <= a >> b[4:0];
                 end
             end
             OP_ADD: begin
+                // TODO: This IF has a big impact on fmax
                 if (op_alt) begin
                     tmp_out <= a - b;
                 end else begin
