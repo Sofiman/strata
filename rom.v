@@ -19,8 +19,9 @@ module rom #(
         //$readmemh("testprograms/test_i_type.hex", mem, 0, 3);
         //$readmemh("testprograms/test_ir_type.hex", mem, 0, 4);
         //$readmemh("testprograms/test2_ir_type.hex", mem, 0, 5);
-        $readmemh("testprograms/test3_ir_type.hex", mem, 0, 6);
+        //$readmemh("testprograms/test3_ir_type.hex", mem, 0, 6);
         //$readmemh("testprograms/auipc.hex", mem, 0, 2);
+        $readmemh("testprograms/jal.hex", mem, 0, 5);
     end
 
     always @(posedge clk or posedge rst) begin

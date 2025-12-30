@@ -12,7 +12,7 @@ module rv32i (
 
     // Fetch
     reg [31:0] pc;
-    reg [31:0] pc_next;
+    reg pc_next;
     reg [31:0] pc_to_load;
     reg [31:0] inst;
     wire [31:0] inst_next;
@@ -44,7 +44,7 @@ module rv32i (
     rom inst_mem (
         .rst(rst),
         .clk(clk),
-        .addr(pc_to_load),
+        .addr(pc_to_load[31:2]),
         .data(inst_next),
         .data_valid(data_valid_next)
     );
@@ -110,13 +110,25 @@ module rv32i (
     `include "cfg/rv_isa_opcode.v"
 
     always @(*) begin
-        pc_next <= pc;
+        pc_to_load <= pc + 4;
         wr__en <= 0;
 
         alu_op <= funct3;
         alu_op_alt <= 0;
         alu_a <= rf_a;
         alu_b <= rf_b;
+
+        case (inst_fmt)
+            R_TYPE: alu_b <= rf_b;
+            I_TYPE: alu_b <= i_imm;
+            S_TYPE: alu_b <= sb_imm;
+            U_TYPE: alu_b <= uj_imm;
+            J_TYPE: alu_b <= 4;
+            default: begin
+                // TODO: B
+            end
+        endcase
+
         case (opcode[6:2])
             OP: alu_op_alt <= funct7[5]; // 0x20 -- SUB/SRA
             OP_IMM: alu_op_alt <= funct3 == 0 ? 0 : i_imm[10]; // 0x20 -- SLLI/SRLI/SRAI
@@ -130,37 +142,41 @@ module rv32i (
                 alu_op <= /* ADD */ 0;
                 alu_a <= pc;
             end
+            JAL: begin
+                // rd = PC + 4;
+                alu_op <= /* ADD */ 0;
+                alu_a <= pc;
+                alu_b <= 4;
+                pc_to_load <= pc + uj_imm;
+            end
+            JALR: begin
+                // rd = PC + 4;
+                alu_op <= /* ADD */ 0;
+                alu_a <= pc;
+                alu_b <= 4;
+                pc_to_load <= rf_a + i_imm; // TODO: Set the LSB to 0 (page 31)
+            end
             default: begin
                 // TODO
             end
         endcase
 
-        case (inst_fmt)
-            R_TYPE: alu_b <= rf_b;
-            I_TYPE: alu_b <= i_imm;
-            S_TYPE: alu_b <= sb_imm;
-            U_TYPE: alu_b <= uj_imm;
-            default: begin
-                // TODO: B, J
-            end
-        endcase
-
         state_next <= state;
-        pc_to_load <= pc;
+        pc_next <= 0;
         case (state)
             S_FETCH_DECODE: begin
                 if (data_valid) begin
                     state_next <= S_EXECUTE;
-                    pc_to_load <= pc + 1;
+                end else begin
+                    pc_to_load <= pc;
                 end
             end
             S_EXECUTE: begin
                 state_next <= S_FETCH_DECODE;
-                pc_next <= pc + 1;
-                pc_to_load <= pc + 1;
+                pc_next <= 1;
 
                 case (inst_fmt)
-                    R_TYPE, I_TYPE, U_TYPE: wr__en <= 1;
+                    R_TYPE, I_TYPE, U_TYPE, J_TYPE: wr__en <= 1;
                     default: wr__en <= 0;
                 endcase
             end
@@ -175,7 +191,9 @@ module rv32i (
             inst <= 'h13;
         end else begin
             state <= state_next;
-            pc <= pc_next;
+            if (pc_next) begin
+                pc <= pc_to_load;
+            end
             inst <= inst_next;
             data_valid <= data_valid_next;
 
