@@ -202,3 +202,12 @@ module rv32i (
     end
 
 endmodule
+
+// TODO: Validation testbenches for regression testing
+// TODO: Branch instructions
+// TODO: Load/Store unit
+// TODO: Attach MMIO UART
+// TODO: Interrupt unit
+// TODO: Multiply extension
+// TODO: Pipelining
+// TODO: Simple branch predictor (same-as-before, two-mispredictions-in-a-row) -- Source: https://www.youtube.com/watch?v=mGCClZpjX0g
