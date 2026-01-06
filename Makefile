@@ -1,9 +1,14 @@
 # Source: https://blog.peramid.es/posts/2024-10-19-fpga.html
 
 CONSTRAINT_FILE := rv32i.cst
+ifdef DOT
+  YOSYS_SHOW := show -format dot -prefix netlist -colors 1 -width;
+else
+  YOSYS_SHOW := ""
+endif
 
 %.synth.json: %.v $(filter-out $(wildcard *_tb.v),$(wildcard *.v))
-	yosys -p "read_verilog $^; synth_gowin -top $* -json $@ -family gw2a"
+	yosys -p "read_verilog $^; ${YOSYS_SHOW} synth_gowin -top $* -json $@ -family gw2a"
 
 %.pnr.json: %.synth.json $(CONSTRAINT_FILE)
 	nextpnr-himbaechel --json $< --write $@ --freq 200 --device GW2AR-LV18QN88C8/I7 --vopt family=GW2A-18C --vopt cst=$(CONSTRAINT_FILE)
