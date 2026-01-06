@@ -31,8 +31,9 @@ endif
 
 # --- Simulation
 
+VCD_OUTPUT ?= $*_tb.vcd
 %_tb.out: %_tb.v $(filter-out $(wildcard *_tb.v),$(wildcard *.v))
-	iverilog -o $@ -D VCD_OUTPUT=$*_tb $^
+	iverilog -o $@ -D VCD_OUTPUT=\"$(VCD_OUTPUT)\" $(IVERILOG_FLAGS) $^
 
 %_tb.vcd: %_tb.out
 	./$<
@@ -40,5 +41,14 @@ endif
 %_tb.wave: %_tb.vcd
 	surfer $@
 
+# --- Tests
+
+%.test: testprograms/%/test.v testprograms/%/rom.hex
+	$(MAKE) -B VCD_OUTPUT=testprograms/$*/result.vcd IVERILOG_FLAGS="-D TEST_SCRIPT=\\\"testprograms/$*/test.v\\\" -D ROM_FILE=\\\"testprograms/$*/rom.hex\\\"" rv32i_tb.vcd
+
+test: $(addsuffix .test,$(notdir $(wildcard testprograms/*)))
+
 clean:
 	$(RM) *.pnr.json *.synth.json *.vcd *.out *.fs
+
+.PHONY: %.test test clean

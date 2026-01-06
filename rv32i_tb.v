@@ -1,5 +1,14 @@
 `timescale 1 ns / 10 ps
+
+`define CLK_HALF_PERIOD 18.518 // 27Mhz
+`define CLK_PERIOD (`CLK_HALF_PERIOD * 2)
+
 `define BENCH
+`define assert_eq(signal, value) \
+    if (signal !== value) begin \
+        $display("\033[31mASSERTION FAILED in %m: signal != value\033[0m"); \
+        $finish; \
+    end
 
 module rv32i_tb();
 
@@ -9,9 +18,12 @@ module rv32i_tb();
     wire [5:0] leds;
 
     always begin
-        #18.518
+        #(`CLK_HALF_PERIOD)
         clk = ~clk;
     end
+
+    `include "cfg/rv_isa_registers.v"
+    `include `TEST_SCRIPT
 
     rv32i uut (
         .rst(rst),
@@ -20,6 +32,7 @@ module rv32i_tb();
     );
 
     initial begin
+        $display("\n--- RESET ---");
         #10
         rst = 1'b1;
         #1
@@ -27,7 +40,7 @@ module rv32i_tb();
     end
 
     initial begin
-        $dumpfile("rv32i_tb.vcd");
+        $dumpfile(`VCD_OUTPUT);
         $dumpvars(/* infinite depth */ 0, rv32i_tb);
         #(DURATION)
         $finish;

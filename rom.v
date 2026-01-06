@@ -16,12 +16,16 @@ module rom #(
         for (i = 0; i < DEPTH; i++) begin
             mem[i] = 'h13;// nop aka addi x0, x0, 0
         end
+        `ifdef ROM_FILE
+        $readmemh(`ROM_FILE, mem);
+        `else
         //$readmemh("testprograms/test_i_type.hex", mem, 0, 3);
         //$readmemh("testprograms/test_ir_type.hex", mem, 0, 4);
         //$readmemh("testprograms/test2_ir_type.hex", mem, 0, 5);
-        //$readmemh("testprograms/test3_ir_type.hex", mem, 0, 6);
+        $readmemh("testprograms/test3_ir_type.hex", mem, 0, 6);
         //$readmemh("testprograms/auipc.hex", mem, 0, 2);
-        $readmemh("testprograms/jal.hex", mem, 0, 5);
+        $readmemh("testprograms/jal.hex", mem, 0+7, 5+7);
+        `endif
     end
 
     always @(posedge clk or posedge rst) begin
