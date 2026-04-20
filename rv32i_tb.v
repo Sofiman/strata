@@ -6,7 +6,9 @@
 `define BENCH
 `define assert_eq(signal, value) \
     if (signal !== value) begin \
-        $display("\033[31mASSERTION FAILED in %m: signal != value\033[0m"); \
+        $display("\033[4;31mASSERTION FAILED in %m:\033[24m signal != value\033[0m"); \
+        $display("\t\033[35mactual:\033[0m    0x%h  \033[90m[signal]\033[0m", signal); \
+        $display("\t\033[35mexpected:\033[0m  0x%h  \033[90m[value]\033[0m", value); \
         $finish; \
     end
 
