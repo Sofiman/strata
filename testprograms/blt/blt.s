@@ -4,10 +4,13 @@
 
     li t3, 0
 
-    bne t0, t1, first
+    blt t0, t3, first
     or t3, t3, 1
 first:
-    bne t0, t2, second
+    blt t0, t2, second
     or t3, t3, 2
 second:
+    blt t0, t1, third
+    or t3, t3, 4
+third:
     nop

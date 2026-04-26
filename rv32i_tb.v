@@ -33,6 +33,13 @@ module rv32i_tb();
         .leds(leds)
     );
 
+    task wait_for_execute();
+        begin
+            wait(uut.state !== uut.S_EXECUTE);
+            wait(uut.state === uut.S_EXECUTE);
+        end
+    endtask
+
     initial begin
         $display("\n--- RESET ---");
         #10

@@ -1,6 +1,6 @@
 localparam ROM_BASE_ADDR = 'h40000000;
 
-localparam FIRST_ADDR   = ROM_BASE_ADDR + 5 /* instructions */ * 4 /* 32-bit each */;
+localparam FIRST_ADDR  = ROM_BASE_ADDR + 6 /* instructions */ * 4 /* 32-bit each */;
 localparam SECOND_ADDR = ROM_BASE_ADDR + 8 /* instructions */ * 4 /* 32-bit each */;
 
 initial begin
@@ -24,21 +24,19 @@ initial begin
     `assert_eq(uut.rf.wr__addr, REG_T3);
     `assert_eq(uut.rf.wr__data, 'h00000000);
 
-    /* bne t0, t1, first */
+    /* bgeu t0, t3, first */
     wait_for_execute();
 
-    /* or t3, t3, 1 */
+    /* bgeu t0, t2, second */
     wait_for_execute();
     `assert_eq(uut.pc, FIRST_ADDR);
-    `assert_eq(uut.rf.wr__addr, REG_T3);
-    `assert_eq(uut.rf.wr__data, 'h00000001);
 
-    /* bne t0, t2, second */
+    /* bgeu t0, t1, third */
     wait_for_execute();
+    `assert_eq(uut.pc, SECOND_ADDR);
 
     /* li zero, 0 */
     wait_for_execute();
-    `assert_eq(uut.pc, SECOND_ADDR);
     `assert_eq(uut.rf.wr__addr, REG_ZERO);
     `assert_eq(uut.rf.wr__data, 'h00000000);
 
