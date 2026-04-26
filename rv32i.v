@@ -110,6 +110,22 @@ module rv32i (
 
     `include "cfg/rv_isa_opcode.v"
 
+    reg branch_taken;
+    always @(posedge clk) begin
+        branch_taken <= 0;
+        case (funct3)
+            BRANCH_FUNCT3_BEQ:  branch_taken <= rf_a == rf_b;
+            BRANCH_FUNCT3_BNE:  branch_taken <= rf_a != rf_b;
+            BRANCH_FUNCT3_BLT:  branch_taken <= $signed(rf_a) < $signed(rf_b);
+            BRANCH_FUNCT3_BGE:  branch_taken <= $signed(rf_a) >= $signed(rf_b);
+            BRANCH_FUNCT3_BLTU: branch_taken <= rf_a < rf_b;
+            BRANCH_FUNCT3_BGEU: branch_taken <= rf_a >= rf_b;
+            default: begin
+                // TODO: Illegal instruction
+            end
+        endcase
+    end
+
     always @(*) begin
         pc_to_load_next <= pc + 4;
         pc_next <= pc;
@@ -158,6 +174,11 @@ module rv32i (
                 alu_a <= pc;
                 alu_b <= 4;
                 pc_to_load_next <= rf_a + i_imm; // TODO: Set the LSB to 0 (page 31)
+            end
+            BRANCH: begin
+                if (branch_taken) begin
+                    pc_to_load_next <= pc + $signed(sb_imm);
+                end
             end
             default: begin
                 // TODO
@@ -210,7 +231,6 @@ module rv32i (
 endmodule
 
 // TODO: Validation testbenches for regression testing
-// TODO: Branch instructions
 // TODO: Load/Store unit
 // TODO: Attach MMIO UART
 // TODO: Interrupt unit
