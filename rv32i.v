@@ -36,9 +36,9 @@ module rv32i (
     wire [2:0] funct3;
     wire [4:0] rd;
     wire [6:0] opcode;
-    wire [31:0] i_imm;
-    wire [31:0] sb_imm;
-    wire [31:0] uj_imm;
+    wire [31:0] is_imm;
+    wire [31:0] bj_imm;
+    wire [31:0] u_imm;
 
     rom inst_mem (
         .rst(rst),
@@ -74,9 +74,9 @@ module rv32i (
         .rd(rd),
         .opcode(opcode),
 
-        .i_imm(i_imm),
-        .sb_imm(sb_imm),
-        .uj_imm(uj_imm)
+        .is_imm(is_imm),
+        .bj_imm(bj_imm),
+        .u_imm(u_imm)
     );
 
     alu alu (
@@ -139,9 +139,9 @@ module rv32i (
 
         case (inst_fmt)
             R_TYPE: alu_b <= rf_b;
-            I_TYPE: alu_b <= i_imm;
-            S_TYPE: alu_b <= sb_imm;
-            U_TYPE: alu_b <= uj_imm;
+            I_TYPE: alu_b <= is_imm;
+            S_TYPE: alu_b <= is_imm;
+            U_TYPE: alu_b <= u_imm;
             J_TYPE: alu_b <= 4;
             default: begin
                 // TODO: B
@@ -150,7 +150,7 @@ module rv32i (
 
         case (opcode[6:2])
             OP: alu_op_alt <= funct7[5]; // 0x20 -- SUB/SRA
-            OP_IMM: alu_op_alt <= funct3 == 0 ? 0 : i_imm[10]; // 0x20 -- SLLI/SRLI/SRAI
+            OP_IMM: alu_op_alt <= funct3 == 0 ? 0 : is_imm[10]; // 0x20 -- SLLI/SRLI/SRAI
             LUI: begin
                 // rd =  0 + (imm << 12)
                 alu_op <= /* ADD */ 0;
@@ -166,18 +166,18 @@ module rv32i (
                 alu_op <= /* ADD */ 0;
                 alu_a <= pc;
                 alu_b <= 4;
-                pc_to_load_next <= pc + uj_imm;
+                pc_to_load_next <= pc + bj_imm;
             end
             JALR: begin
                 // rd = PC + 4;
                 alu_op <= /* ADD */ 0;
                 alu_a <= pc;
                 alu_b <= 4;
-                pc_to_load_next <= rf_a + i_imm; // TODO: Set the LSB to 0 (page 31)
+                pc_to_load_next <= rf_a + is_imm; // TODO: Set the LSB to 0 (page 31)
             end
             BRANCH: begin
                 if (branch_taken) begin
-                    pc_to_load_next <= pc + $signed(sb_imm);
+                    pc_to_load_next <= pc + $signed(bj_imm);
                 end
             end
             default: begin

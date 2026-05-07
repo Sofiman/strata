@@ -10,9 +10,9 @@ module decoder (
     output [4:0] rd,
     output [6:0] opcode,
 
-    output reg [31:0] i_imm,
-    output reg [31:0] sb_imm,
-    output reg [31:0] uj_imm
+    output reg [31:0] is_imm,
+    output reg [31:0] bj_imm,
+    output reg [31:0] u_imm
 );
 
     assign funct7 = inst[31:25];
@@ -63,152 +63,44 @@ module decoder (
 
     always @(*) begin
         case (opcode[6:2])
-            OP      : fmt = R_TYPE;
-            /*
-            AMO     : fmt = R_TYPE;
-            OP_FP   : fmt = R_TYPE;
-            FMADD   : fmt = R_TYPE;
-            FMSUB   : fmt = R_TYPE;
-            FNMSUB  : fmt = R_TYPE;
-            FNMADD  : fmt = R_TYPE;
-            */
+            OP      : fmt <= R_TYPE;
+            AMO     : fmt <= R_TYPE;
+            OP_FP   : fmt <= R_TYPE;
+            FMADD   : fmt <= R_TYPE;
+            FMSUB   : fmt <= R_TYPE;
+            FNMSUB  : fmt <= R_TYPE;
+            FNMADD  : fmt <= R_TYPE;
 
-            OP_IMM  : fmt = I_TYPE;
-            JALR    : fmt = I_TYPE;
-            LOAD    : fmt = I_TYPE;
-            MISC_MEM: fmt = I_TYPE;
-            SYSTEM  : fmt = I_TYPE;
-            //LOAD_FP : fmt = I_TYPE;
+            OP_IMM  : fmt <= I_TYPE;
+            JALR    : fmt <= I_TYPE;
+            LOAD    : fmt <= I_TYPE;
+            MISC_MEM: fmt <= I_TYPE;
+            SYSTEM  : fmt <= I_TYPE;
+            LOAD_FP : fmt <= I_TYPE;
 
-            STORE   : fmt = S_TYPE;
-            //STORE_FP: fmt = S_TYPE;
+            STORE   : fmt <= S_TYPE;
+            STORE_FP: fmt <= S_TYPE;
 
-            BRANCH  : fmt = B_TYPE;
+            BRANCH  : fmt <= B_TYPE;
 
-            AUIPC   : fmt = U_TYPE;
-            LUI     : fmt = U_TYPE;
+            AUIPC   : fmt <= U_TYPE;
+            LUI     : fmt <= U_TYPE;
 
-            JAL     : fmt = J_TYPE;
-            default : fmt = R_TYPE;
+            JAL     : fmt <= J_TYPE;
+            default : fmt <= R_TYPE;
         endcase
 
-        /*
-        * === decoder ===
+    end
 
-            Number of wires:                119
-            Number of wire bits:            378
-            Number of public wires:         119
-            Number of public wire bits:     378
-            Number of ports:                 11
-            Number of port bits:            166
-            Number of memories:               0
-            Number of memory bits:            0
-            Number of processes:              0
-            Number of cells:                273
-            GND                             1
-            IBUF                           32
-            LUT1                           38
-            LUT3                            1
-            LUT4                           22
-            MUX2_LUT5                      30
-            MUX2_LUT6                      14
-            MUX2_LUT7                       1
-            OBUF                          134
+    always @(*) begin
+        is_imm <= {{20{inst[31]}}, inst[31:25], fmt == I_TYPE ? inst[24:20] : inst[11:7]};
+        u_imm <= {inst[31:12], 12'b0};
 
-        */
-        sb_imm[31:11] <= {21{inst[31]}};
-        sb_imm[10:5]  <= inst[30:25];
-        sb_imm[4:1]   <= inst[11:8];
         if (fmt == B_TYPE) begin
-            sb_imm[0] <= 0;
-            sb_imm[11] <= inst[7];
+            bj_imm <= {{19{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0};
         end else begin
-            sb_imm[0] <= inst[7];
+            bj_imm <= {{12{inst[31]}}, inst[19:12], inst[20], inst[30:25], inst[24:21], 1'b0};
         end
-
-        i_imm[31:11] <= {21{inst[31]}};
-        i_imm[10:5]  <= inst[30:25];
-        i_imm[4:1]   <= inst[24:21];
-        i_imm[0]     <= inst[20];
-
-        uj_imm[31] <= inst[31];
-        uj_imm[19:12] <= inst[19:12];
-        uj_imm[0] <= 0;
-        if (fmt == U_TYPE) begin
-            uj_imm[30:20] <= inst[30:20];
-            uj_imm[11:1] <= 0;
-        end else begin
-            uj_imm[30:20] <= {12{inst[31]}};
-            uj_imm[11] <= inst[20];
-            uj_imm[10:5] <= inst[30:25];
-            uj_imm[4:1] <= inst[24:21];
-        end
-
-        /* See `Chapter 35. RV32/64G Instruction Set Listings` (pages 608 to 619) */
-        /* 
-         === decoder ===
-
-       Number of wires:                420
-       Number of wire bits:            708
-       Number of public wires:         420
-       Number of public wire bits:     708
-       Number of ports:                  9
-       Number of port bits:            102
-       Number of memories:               0
-       Number of memory bits:            0
-       Number of processes:              0
-       Number of cells:                519
-         GND                             1
-         IBUF                           32
-         LUT1                           94
-         LUT2                           13
-         LUT3                           42
-         LUT4                           76
-         MUX2_LUT5                     112
-         MUX2_LUT6                      52
-         MUX2_LUT7                      26
-         MUX2_LUT8                       1
-         OBUF                           70
-        */
-       /*
-        imm[10:5] <= inst[30:25];
-        imm[19:12] <= inst[19:12];
-        imm[31] <= inst[31];
-        case (fmt)
-            I_TYPE: begin
-                imm[0] <= inst[20];
-                imm[4:1] <= inst[24:21];
-                imm[30:11] <= {19{inst[31]}};
-            end
-            S_TYPE: begin
-                imm[0] <= inst[7];
-                imm[4:1] <= inst[11:8];
-                imm[30:11] <= {19{inst[31]}};
-            end
-            B_TYPE: begin
-                imm[0] <= 0;
-                imm[4:1] <= inst[11:8];
-                imm[11] <= inst[7];
-                imm[30:12] <= {18{inst[31]}};
-            end
-            U_TYPE: begin
-                imm[11:0] <= {12{0}};
-                imm[30:20] <= inst[30:20];
-            end
-            J_TYPE: begin
-                imm[0] <= 0;
-                imm[4:1] <= inst[24:21];
-                imm[11] <= inst[20];
-                imm[30:20] <= {11{inst[31]}};
-            end
-            default: begin
-                imm[0] <= 0;
-                imm[4:1] <= 0;
-                imm[11] <= 0;
-                imm[30:20] <= 0;
-            end
-        endcase
-        */
     end
 
 endmodule
