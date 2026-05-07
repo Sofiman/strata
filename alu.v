@@ -48,7 +48,7 @@ module alu (
                 tmp_out <= $signed(a) < $signed(b) ? 1 : 0;
             end
             OP_SRL: begin
-                if (op_alt) begin
+                if (b[10]) begin
                     tmp_out <= $signed(a) >>> b[4:0];
                 end else begin
                     tmp_out <= a >> b[4:0];

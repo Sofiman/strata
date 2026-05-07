@@ -150,7 +150,7 @@ module rv32i (
 
         case (opcode[6:2])
             OP: alu_op_alt <= funct7[5]; // 0x20 -- SUB/SRA
-            OP_IMM: alu_op_alt <= funct3 == 0 ? 0 : is_imm[10]; // 0x20 -- SLLI/SRLI/SRAI
+            OP_IMM: begin end // 0x20 -- SLLI/SRLI/SRAI
             LUI: begin
                 // rd =  0 + (imm << 12)
                 alu_op <= /* ADD */ 0;
