@@ -25,5 +25,11 @@ initial begin
     `assert_eq(uut.rf.wr__addr, REG_X13);
     `assert_eq(uut.rf.wr__data, 'hffffffff);
 
+    /* sub x14, x11, x10 */
+    #(`CLK_PERIOD) /* fetch */
+    #(`CLK_PERIOD) /* execute */
+    `assert_eq(uut.rf.wr__addr, REG_X14);
+    `assert_eq(uut.rf.wr__data, 'hfffff4bd);
+
     /* nop */
 end

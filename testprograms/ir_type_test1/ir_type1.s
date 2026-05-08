@@ -3,3 +3,4 @@
 
    or x12, x10, x11
    add x13, x10, x11
+   sub x14, x11, x10

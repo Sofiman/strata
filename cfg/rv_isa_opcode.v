@@ -31,6 +31,15 @@ localparam B_TYPE = 3;
 localparam U_TYPE = 4;
 localparam J_TYPE = 5;
 
+localparam INT_FUNC3_ADD  = 3'b000;
+localparam INT_FUNC3_SLL  = 3'b001;
+localparam INT_FUNC3_SLT  = 3'b010;
+localparam INT_FUNC3_SLTU = 3'b011;
+localparam INT_FUNC3_XOR  = 3'b100;
+localparam INT_FUNC3_SRX  = 3'b101;
+localparam INT_FUNC3_OR   = 3'b110;
+localparam INT_FUNC3_AND  = 3'b111;
+
 localparam BRANCH_FUNCT3_BEQ  = 3'b000;
 localparam BRANCH_FUNCT3_BNE  = 3'b001;
 localparam BRANCH_FUNCT3_BLT  = 3'b100;
