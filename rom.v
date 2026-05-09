@@ -30,9 +30,9 @@ module rom #(
         `endif
     end
 
-    always @(posedge clk or posedge rst) begin
+    always @(negedge clk) begin
         if (rst) begin
-            data <= 'h13;
+            data <= 0;
             data_valid <= 0;
         end else begin
             data <= mem[addr];
