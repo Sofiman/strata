@@ -33,7 +33,7 @@ module rv32i_tb();
         .leds(leds)
     );
 
-    task wait_for_execute();
+    task wait_inst_retire();
         begin
             wait(uut.state !== uut.S_EXECUTE);
             wait(uut.state === uut.S_EXECUTE);
