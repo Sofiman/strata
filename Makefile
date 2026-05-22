@@ -11,7 +11,7 @@ endif
 	yosys -p "read_verilog $^; ${YOSYS_SHOW} synth_gowin -top $* -json $@ -family gw2a"
 
 %.pnr.json: %.synth.json $(CONSTRAINT_FILE)
-	nextpnr-himbaechel --json $< --write $@ --freq 200 --device GW2AR-LV18QN88C8/I7 --vopt family=GW2A-18C --vopt cst=$(CONSTRAINT_FILE)
+	nextpnr-himbaechel --json $< --write $@ --freq 100 --device GW2AR-LV18QN88C8/I7 --vopt family=GW2A-18C --vopt cst=$(CONSTRAINT_FILE)
 
 %.fs: %.pnr.json
 	gowin_pack -d GW2A-18C -o $@ $<
@@ -36,7 +36,7 @@ VCD_OUTPUT ?= $*_tb.vcd
 	iverilog -o $@ -D VCD_OUTPUT=\"$(VCD_OUTPUT)\" $(IVERILOG_FLAGS) $^
 
 %_tb.vcd: %_tb.out
-	./$<
+	@./$<
 
 %_tb.wave: %_tb.vcd
 	surfer $@
