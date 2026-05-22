@@ -6,6 +6,8 @@ module rv32i (
     output reg [5:0] leds
 );
 
+    wire n_rst = !rst;
+
     // Memory Subsystem
     wire [31:0] mss_addr;
     wire [31:0] mss_read_data;
@@ -46,7 +48,7 @@ module rv32i (
     wire [31:0] u_imm;
 
     ifetch u_ifetch (
-        .rst(rst),
+        .n_rst(n_rst),
         .clk(clk),
         .addr_write_enable(pc_next_write_enable),
         .addr(pc_next),
@@ -59,7 +61,7 @@ module rv32i (
     assign mss_write_data = 0;
 
     memory_subsys memory_subsys (
-        .rst(rst),
+        .n_rst(n_rst),
         .clk(clk),
 
         .porta_addr(mss_addr),
@@ -105,7 +107,7 @@ module rv32i (
 
     alu alu (
         .clk(clk),
-        .rst(rst),
+        .n_rst(n_rst),
         .op(alu_op),
         .op_alt(alu_op_alt),
 
@@ -255,8 +257,8 @@ module rv32i (
         endcase
     end
 
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
+    always @(posedge clk or negedge n_rst) begin
+        if (!n_rst) begin
             state <= S_FETCH_STALL;
             leds <= 0;
         end else begin

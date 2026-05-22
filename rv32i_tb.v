@@ -17,7 +17,7 @@ module rv32i_tb();
 
     localparam DURATION = 10_000;
 
-    reg rst = 0, clk = 0;
+    reg n_rst = 1'b0, clk = 1'b0;
     wire [5:0] leds;
 
     always begin
@@ -45,9 +45,9 @@ module rv32i_tb();
     initial begin
         $display("\n--- RESET ---");
         #10
-        rst = 1'b1;
+        n_rst = 1'b1;
         #1
-        rst = 1'b0;
+        n_rst = 1'b0;
     end
 
     `include `TEST_SCRIPT

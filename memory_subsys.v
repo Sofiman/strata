@@ -1,5 +1,5 @@
 module memory_subsys (
-    input rst,
+    input n_rst,
     input clk,
 
     input  [31:0] porta_addr,
@@ -36,7 +36,7 @@ module memory_subsys (
     end
 
     ram ram (
-        .rst(rst),
+        .n_rst(n_rst),
         .clk(clk),
         .read_enable(ram_en & porta_read_enable),
         .write_enable(ram_en & porta_write_enable),
@@ -46,7 +46,7 @@ module memory_subsys (
     );
 
     rom inst_mem (
-        .rst(rst),
+        .n_rst(n_rst),
         .clk(clk),
         .read_enable(rom_en & porta_read_enable),
         .addr(porta_addr[10:2]),

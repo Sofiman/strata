@@ -3,7 +3,7 @@ module ram #(
     parameter XLEN = 32
 ) (
     input clk,
-    input rst,
+    input n_rst,
     input                     read_enable,
     input                     write_enable,
     input [XLEN-1:0]          wr_data,

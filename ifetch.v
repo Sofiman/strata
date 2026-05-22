@@ -1,5 +1,5 @@
 module ifetch (
-    input             rst,
+    input             n_rst,
     input             clk,
     input             addr_write_enable,
     input [31:0]      addr,
@@ -12,15 +12,15 @@ module ifetch (
     reg [31:0] retired_inst_pc;
 
     rom inst_mem (
-        .rst(rst),
+        .n_rst(n_rst),
         .clk(clk),
         .read_enable(!inst_valid),
         .addr(pc[10:2]),
         .data(inst)
     );
 
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
+    always @(posedge clk or negedge n_rst) begin
+        if (!n_rst) begin
             inst_valid <= 0;
             pc <= 32'h40000000;
             retired_inst_pc <= 0;

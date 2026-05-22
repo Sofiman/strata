@@ -1,6 +1,6 @@
 module alu (
     input clk,
-    input rst,
+    input n_rst,
 
     input [2:0]  op,
     input        op_alt,
@@ -29,7 +29,7 @@ module alu (
     `endif
 
     always @(posedge clk) begin
-        if (rst) begin
+        if (!n_rst) begin
             out <= 0;
         end else begin
             case (op)

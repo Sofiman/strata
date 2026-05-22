@@ -3,7 +3,7 @@ module rom #(
     parameter XLEN = 32
 ) (
     input                          clk,
-    input                          rst,
+    input                          n_rst,
     input                          read_enable,
     input      [$clog2(DEPTH)-1:0] addr,
     output reg [XLEN-1:0]          data
@@ -30,8 +30,8 @@ module rom #(
         `endif
     end
 
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
+    always @(posedge clk or negedge n_rst) begin
+        if (!n_rst) begin
             data <= 0;
         end else if (read_enable) begin
             data <= mem[addr];
