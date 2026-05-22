@@ -6,8 +6,6 @@ module rv32i (
     output reg [5:0] leds
 );
 
-    // ROM
-    wire data_valid;
     // Memory Subsystem
     wire [31:0] mss_addr;
     wire [31:0] mss_read_data;
@@ -17,11 +15,11 @@ module rv32i (
     wire [31:0] mss_write_data;
 
     // Fetch
-    reg [31:0] pc;
-    reg [31:0] pc_next;
-    reg [31:0] pc_to_load;
-    reg [31:0] pc_to_load_next;
+    reg [31:0]  pc_next;
+    reg         pc_next_write_enable;
+    wire [31:0] pc;
     wire [31:0] inst;
+    wire        inst_valid;
 
     // ALU
     reg [2:0] alu_op;
@@ -47,12 +45,14 @@ module rv32i (
     wire [31:0] bj_imm;
     wire [31:0] u_imm;
 
-    rom inst_mem (
+    ifetch u_ifetch (
         .rst(rst),
         .clk(clk),
-        .addr(pc_to_load[10:2]),
-        .data(inst),
-        .data_valid(data_valid)
+        .addr_write_enable(pc_next_write_enable),
+        .addr(pc_next),
+        .pc(pc),
+        .inst(inst),
+        .inst_valid(inst_valid)
     );
 
     assign mss_write_enable = 0;
@@ -157,8 +157,8 @@ module rv32i (
     wire [31:0] branch_addr = pc + $signed(bj_imm);
 
     always @(*) begin
-        pc_to_load_next <= pc + 4;
-        pc_next <= pc;
+        pc_next_write_enable <= 0;
+        pc_next <= pc + 4;
         mss_read_enable <= 0;
 
         wr__en <= 0;
@@ -197,18 +197,18 @@ module rv32i (
                 alu_op <= /* ADD */ 0;
                 alu_a <= pc;
                 alu_b <= 4;
-                pc_to_load_next <= branch_addr;
+                pc_next <= branch_addr;
             end
             JALR: begin
                 // rd = PC + 4;
                 alu_op <= /* ADD */ 0;
                 alu_a <= pc;
                 alu_b <= 4;
-                pc_to_load_next <= mss_addr; // TODO: Set the LSB to 0 (page 31)
+                pc_next <= mss_addr; // TODO: Set the LSB to 0 (page 31)
             end
             BRANCH: begin
                 if (branch_taken) begin
-                    pc_to_load_next <= branch_addr;
+                    pc_next <= branch_addr;
                 end
             end
             LOAD: begin
@@ -234,10 +234,10 @@ module rv32i (
             end
             S_EXECUTE: begin
                 state_next <= S_WRITEBACK;
+                pc_next_write_enable <= 1;
             end
             S_WRITEBACK: begin
                 state_next <= S_FETCH_DECODE;
-                pc_next <= pc_to_load;
 
                 case (inst_fmt)
                     R_TYPE, I_TYPE, U_TYPE, J_TYPE: wr__en <= 1;
@@ -248,9 +248,7 @@ module rv32i (
                 endcase
             end
             S_FETCH_STALL: begin
-                pc_to_load_next <= pc_to_load;
-                pc_next <= pc_to_load;
-                if (data_valid) begin
+                if (inst_valid) begin
                     state_next <= S_FETCH_DECODE;
                 end
             end
@@ -260,14 +258,9 @@ module rv32i (
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             state <= S_FETCH_STALL;
-            pc <= 32'h40000000;
-            pc_to_load <= 32'h40000000;
             leds <= 0;
         end else begin
             state <= state_next;
-
-            pc <= pc_next;
-            pc_to_load <= pc_to_load_next;
 
             leds[0] <= ^alu_out;
         end

@@ -18,7 +18,7 @@ initial begin
     /* double: */
         /* add x10, x10, x10 */
         wait_inst_retire();
-        `assert_eq(uut.pc, DOUBLE_FUNC_BEGIN_ADDR);
+        `assert_eq(pc, DOUBLE_FUNC_BEGIN_ADDR);
         `assert_eq(uut.rf.wr__addr, REG_X10);
         `assert_eq(uut.rf.wr__data, 'h00000002);
 
@@ -30,14 +30,14 @@ initial begin
 
     /* jal x1, double */
     wait_inst_retire();
-    `assert_eq(uut.pc, RET_ADDR_1);
+    `assert_eq(pc, RET_ADDR_1);
     `assert_eq(uut.rf.wr__addr, REG_X1);
     `assert_eq(uut.rf.wr__data, RET_ADDR_2);
 
     /* double: */
         /* add x10, x10, x10 */
         wait_inst_retire();
-        `assert_eq(uut.pc, DOUBLE_FUNC_BEGIN_ADDR);
+        `assert_eq(pc, DOUBLE_FUNC_BEGIN_ADDR);
         `assert_eq(uut.rf.wr__addr, REG_X10);
         `assert_eq(uut.rf.wr__data, 'h00000004);
 
@@ -48,7 +48,7 @@ initial begin
 
     /* addi x10, x10, 4 */
     wait_inst_retire();
-    `assert_eq(uut.pc, RET_ADDR_2);
+    `assert_eq(pc, RET_ADDR_2);
     `assert_eq(uut.rf.wr__addr, REG_X10);
     `assert_eq(uut.rf.wr__data, 'h00000008);
 end

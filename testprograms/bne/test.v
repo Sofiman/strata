@@ -29,7 +29,7 @@ initial begin
 
     /* or t3, t3, 1 */
     wait_inst_retire();
-    `assert_eq(uut.pc, FIRST_ADDR);
+    `assert_eq(pc, FIRST_ADDR);
     `assert_eq(uut.rf.wr__addr, REG_T3);
     `assert_eq(uut.rf.wr__data, 'h00000001);
 
@@ -38,7 +38,7 @@ initial begin
 
     /* li zero, 0 */
     wait_inst_retire();
-    `assert_eq(uut.pc, SECOND_ADDR);
+    `assert_eq(pc, SECOND_ADDR);
     `assert_eq(uut.rf.wr__addr, REG_ZERO);
     `assert_eq(uut.rf.wr__data, 'h00000000);
 

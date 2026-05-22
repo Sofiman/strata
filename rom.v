@@ -2,11 +2,11 @@ module rom #(
     parameter DEPTH = 1 * /* BSRAM cap */ 16384 / /* bithwidth */ 32, // 16Kb = 1 BRAM
     parameter XLEN = 32
 ) (
-    input clk,
-    input rst,
-    input [$clog2(DEPTH)-1:0] addr,
-    output reg data_valid,
-    output reg [XLEN-1:0] data
+    input                          clk,
+    input                          rst,
+    input                          read_enable,
+    input      [$clog2(DEPTH)-1:0] addr,
+    output reg [XLEN-1:0]          data
 );
 
     (* ram_style = "block" *) reg [XLEN-1:0] mem [DEPTH-1:0];
@@ -30,14 +30,12 @@ module rom #(
         `endif
     end
 
-    always @(negedge clk) begin
+    always @(posedge clk or posedge rst) begin
         if (rst) begin
             data <= 0;
-            data_valid <= 0;
-        end else begin
+        end else if (read_enable) begin
             data <= mem[addr];
-            data_valid <= 1;
         end
     end
 
-endmodule
+    endmodule

@@ -40,6 +40,8 @@ module rv32i_tb();
         end
     endtask
 
+    wire [31:0] pc = uut.u_ifetch.retired_inst_pc;
+
     initial begin
         $display("\n--- RESET ---");
         #10

@@ -29,11 +29,11 @@ initial begin
 
     /* bgeu t0, t2, second */
     wait_inst_retire();
-    `assert_eq(uut.pc, FIRST_ADDR);
+    `assert_eq(pc, FIRST_ADDR);
 
     /* bgeu t0, t1, third */
     wait_inst_retire();
-    `assert_eq(uut.pc, SECOND_ADDR);
+    `assert_eq(pc, SECOND_ADDR);
 
     /* li zero, 0 */
     wait_inst_retire();
