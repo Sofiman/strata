@@ -46,3 +46,9 @@ localparam BRANCH_FUNCT3_BLT  = 3'b100;
 localparam BRANCH_FUNCT3_BGE  = 3'b101;
 localparam BRANCH_FUNCT3_BLTU = 3'b110;
 localparam BRANCH_FUNCT3_BGEU = 3'b111;
+
+localparam LOAD_BYTE              = 3'b000;
+localparam LOAD_HALFWORD          = 3'b001;
+localparam LOAD_WORD              = 3'b010;
+localparam LOAD_BYTE_UNSIGNED     = 3'b100;
+localparam LOAD_HALFWORD_UNSIGNED = 3'b101;
