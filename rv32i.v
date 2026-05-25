@@ -141,9 +141,9 @@ module rv32i (
     `include "cfg/rv_isa_opcode.v"
 
     reg branch_taken;
-    always @(posedge clk) begin
+    always @(*) begin
+        branch_taken <= 0;
         if (bru_en) begin
-            branch_taken <= 0;
             case (op[2:0])
                 BRANCH_FUNCT3_BEQ:  branch_taken <= rf_a == rf_b;
                 BRANCH_FUNCT3_BNE:  branch_taken <= rf_a != rf_b;
