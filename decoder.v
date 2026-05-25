@@ -53,6 +53,7 @@ module decoder (
 `define STORE(A, B)   {3'b010,  A, {             1'b1,        funct3}, B}
 `define BRANCH(B)     {3'b001, pc, {             1'b1,        funct3}, B}
 `define JMP(A, B)     {3'b101,  A, {/* bypass */ 1'b0, INT_FUNC3_ADD}, B}
+`define NO_OP         'b0
 
     always @(posedge clk or negedge n_rst) begin
         if (!n_rst) begin
@@ -62,6 +63,7 @@ module decoder (
             case (opcode[6:2])
                 // R_TYPE
                 OPCODE_OP      : {alu_en, mem_en, bru_en, op_a, op, op_b} = `ALU(rf_a, {funct7[5],        funct3},  rf_b);
+                OPCODE_MISC_MEM: {alu_en, mem_en, bru_en, op_a, op, op_b} = `NO_OP; // TODO: memory ordering
 
                 // I_TYPE
                 OPCODE_OP_IMM  : {alu_en, mem_en, bru_en, op_a, op, op_b} = `ALU(rf_a, {     1'b0,        funct3}, i_imm);
