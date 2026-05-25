@@ -62,29 +62,30 @@ module decoder (
         end else begin
             case (opcode[6:2])
                 // R_TYPE
-                OPCODE_OP      : {alu_en, mem_en, bru_en, op_a, op, op_b} = `ALU(rf_a, {funct7[5],        funct3},  rf_b);
-                OPCODE_MISC_MEM: {alu_en, mem_en, bru_en, op_a, op, op_b} = `NO_OP; // TODO: memory ordering
+                OPCODE_OP      : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `ALU(rf_a, {funct7[5],        funct3},  rf_b);
+                OPCODE_MISC_MEM: {alu_en, mem_en, bru_en, op_a, op, op_b} <= `NO_OP; // TODO: memory ordering
 
                 // I_TYPE
-                OPCODE_OP_IMM  : {alu_en, mem_en, bru_en, op_a, op, op_b} = `ALU(rf_a, {     1'b0,        funct3}, i_imm);
-                OPCODE_JALR    : {alu_en, mem_en, bru_en, op_a, op, op_b} = `JMP(rf_a, i_imm);
-                OPCODE_LOAD    : {alu_en, mem_en, bru_en, op_a, op, op_b} = `LOAD(rf_a, i_imm);
+                OPCODE_OP_IMM  : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `ALU(rf_a, {     1'b0,        funct3}, i_imm);
+                OPCODE_JALR    : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `JMP(rf_a, i_imm);
+                OPCODE_LOAD    : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `LOAD(rf_a, i_imm);
 
                 // S_TYPE
-                OPCODE_STORE   : {alu_en, mem_en, bru_en, op_a, op, op_b} = `STORE(rf_a, s_imm);
+                OPCODE_STORE   : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `STORE(rf_a, s_imm);
 
                 // B_TYPE
-                OPCODE_BRANCH  : {alu_en, mem_en, bru_en, op_a, op, op_b} = `BRANCH(b_imm);
+                OPCODE_BRANCH  : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `BRANCH(b_imm);
 
                 // U_TYPE
-                OPCODE_AUIPC   : {alu_en, mem_en, bru_en, op_a, op, op_b} = `ALU(   pc, {    1'b0, INT_FUNC3_ADD}, u_imm);
-                OPCODE_LUI     : {alu_en, mem_en, bru_en, op_a, op, op_b} = `ALU(32'h0, {    1'b0, INT_FUNC3_ADD}, u_imm);
+                OPCODE_AUIPC   : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `ALU(   pc, {    1'b0, INT_FUNC3_ADD}, u_imm);
+                OPCODE_LUI     : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `ALU(32'h0, {    1'b0, INT_FUNC3_ADD}, u_imm);
 
                 // J_TYPE
-                OPCODE_JAL     : {alu_en, mem_en, bru_en, op_a, op, op_b} = `JMP(pc, j_imm);
+                OPCODE_JAL     : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `JMP(pc, j_imm);
 
                 default        : begin
-                    {alu_en, mem_en, bru_en, op_a, op, op_b} = 0;
+                    // NOTE: ebreak and ecall will end up in this block
+                    {alu_en, mem_en, bru_en, op_a, op, op_b} <= 0;
                     fault <= 1;
                 end
             endcase
