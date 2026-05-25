@@ -2,12 +2,12 @@ module memory_subsys (
     input n_rst,
     input clk,
 
-    input  [31:0] porta_addr,
-    input         porta_read_enable,
+    input      [31:0] porta_addr,
+    input             porta_read_enable,
     output reg [31:0] porta_read_data,
-    output reg    porta_read_valid,
-    input         porta_write_enable,
-    input  [31:0] porta_write_data,
+    output reg        porta_read_valid,
+    input      [ 3:0] porta_write_enable,
+    input      [31:0] porta_write_data,
 
     output reg       fault,
 
@@ -35,8 +35,8 @@ module memory_subsys (
         if (!n_rst) begin
             leds <= 0;
         end else begin
-            if (leds_en & porta_write_enable)
-                leds <= porta_write_data;
+            if (leds_en & porta_write_enable[0])
+                leds <= porta_write_data[7:0];
         end
     end
 
@@ -44,7 +44,7 @@ module memory_subsys (
         .n_rst(n_rst),
         .clk(clk),
         .read_enable(ram_en & porta_read_enable),
-        .write_enable(ram_en & porta_write_enable),
+        .write_enable({4{ram_en}} & porta_write_enable),
         .wr_data(porta_write_data),
         .addr(porta_addr[10:2]),
         .data(ram_data)

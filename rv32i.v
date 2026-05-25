@@ -10,7 +10,9 @@ module rv32i (
 
     // Memory Subsystem
     wire [31:0] mss_read_data;
-    wire mss_read_valid;
+    wire        mss_read_valid;
+    reg   [3:0] mss_write_strobe;
+    reg  [31:0] mss_write_data;
 
     // Fetch
     reg [31:0]  pc_next;
@@ -92,8 +94,8 @@ module rv32i (
         .porta_read_enable(mem_en & !op[3]),
         .porta_read_data(mss_read_data),
         .porta_read_valid(mss_read_valid),
-        .porta_write_enable(mem_en & op[3]),
-        .porta_write_data(0),
+        .porta_write_enable(mss_write_strobe),
+        .porta_write_data(mss_write_data),
 
         .fault(),
 
@@ -165,7 +167,7 @@ module rv32i (
     end
 
     wire [31:0] mss_read_data_aligned = mss_read_data >> {op_addr[2:0], 3'b0};
-    reg [31:0] mss_data_out;
+    reg  [31:0] mss_data_out;
 
     always @(*) begin
         case (op[1:0])
@@ -174,6 +176,13 @@ module rv32i (
             2'b10, 2'b11: mss_data_out <= mss_read_data_aligned;
             // TODO: Illegal instruction: 2'b11
         endcase
+
+        mss_write_data <= rf_b << {op_addr[1:0], 3'b0};
+        if (mem_en & op[3]) begin
+            mss_write_strobe <= {op[1], op[1:0], 1'b1} << op_addr[1:0];
+        end else begin
+            mss_write_strobe <= 4'b0;
+        end
     end
 
     assign rf_wr_en = (state == S_WRITEBACK) & (alu_en | (mem_en & mss_read_valid));
