@@ -1,105 +1,91 @@
 module decoder (
+    input clk,
+    input n_rst,
+
+    input [31:0]   pc,
     input [31:0] inst,
 
-    output reg [2:0] fmt,
+    output reg        fault,
 
-    output [6:0] funct7,
-    output [4:0] rs2,
-    output [4:0] rs1,
-    output [2:0] funct3,
-    output [4:0] rd,
-    output [6:0] opcode,
+    output reg        alu_en,
+    output reg        mem_en,
+    output reg        bru_en,
+    output reg [ 3:0] op,
+    output reg [31:0] op_a,
+    output reg [31:0] op_b,
 
-    output reg [31:0] is_imm,
-    output reg [31:0] bj_imm,
-    output reg [31:0] u_imm
+    output     [ 4:0] rf_addr_out,
+    output     [ 4:0] rf_addr_a,
+    input      [31:0] rf_a,
+    output     [ 4:0] rf_addr_b,
+    input      [31:0] rf_b
 );
-
-    assign funct7 = inst[31:25];
-    assign rs2    = inst[24:20];
-    assign rs1    = inst[19:15];
-    assign funct3 = inst[14:12];
-    assign rd     = inst[11:7];
-    assign opcode = inst[6:0];
 
     `include "cfg/rv_isa_opcode.v"
 
-    `ifdef BENCH
-    reg [47:0] _b__fmt_name;
-    reg [63:0] _b__opcode_name;
-    always @(*) begin
-        case (fmt)
-            R_TYPE: _b__fmt_name <= "R_TYPE";
-            I_TYPE: _b__fmt_name <= "I_TYPE";
-            S_TYPE: _b__fmt_name <= "S_TYPE";
-            B_TYPE: _b__fmt_name <= "B_TYPE";
-            U_TYPE: _b__fmt_name <= "U_TYPE";
-            J_TYPE: _b__fmt_name <= "J_TYPE";
-        endcase
+    wire [6:0] funct7 = inst[31:25];
+    wire [4:0] rs2    = inst[24:20];
+    wire [4:0] rs1    = inst[19:15];
+    wire [2:0] funct3 = inst[14:12];
+    wire [4:0] rd     = inst[11:7];
+    wire [6:0] opcode = inst[6:0];
 
-        case (opcode[6:2])
-            OP      : _b__opcode_name <= "OP      ";
-            AMO     : _b__opcode_name <= "AMO     ";
-            OP_FP   : _b__opcode_name <= "OP_FP   ";
-            FMADD   : _b__opcode_name <= "FMADD   ";
-            FMSUB   : _b__opcode_name <= "FMSUB   ";
-            FNMSUB  : _b__opcode_name <= "FNMSUB  ";
-            FNMADD  : _b__opcode_name <= "FNMADD  ";
-            OP_IMM  : _b__opcode_name <= "OP_IMM  ";
-            JALR    : _b__opcode_name <= "JALR    ";
-            LOAD    : _b__opcode_name <= "LOAD    ";
-            MISC_MEM: _b__opcode_name <= "MISC_MEM";
-            SYSTEM  : _b__opcode_name <= "SYSTEM  ";
-            LOAD_FP : _b__opcode_name <= "LOAD_FP ";
-            STORE   : _b__opcode_name <= "STORE   ";
-            STORE_FP: _b__opcode_name <= "STORE_FP";
-            BRANCH  : _b__opcode_name <= "BRANCH  ";
-            AUIPC   : _b__opcode_name <= "AUIPC   ";
-            LUI     : _b__opcode_name <= "LUI     ";
-            JAL     : _b__opcode_name <= "JAL     ";
-        endcase
-    end
-    `endif
+    assign rf_addr_a   = rs1;
+    assign rf_addr_b   = rs2;
+    assign rf_addr_out = rd;
+
+    reg [31:0] i_imm;
+    reg [31:0] s_imm;
+    reg [31:0] b_imm;
+    reg [31:0] j_imm;
+    reg [31:0] u_imm;
 
     always @(*) begin
-        case (opcode[6:2])
-            OP      : fmt <= R_TYPE;
-            AMO     : fmt <= R_TYPE;
-            OP_FP   : fmt <= R_TYPE;
-            FMADD   : fmt <= R_TYPE;
-            FMSUB   : fmt <= R_TYPE;
-            FNMSUB  : fmt <= R_TYPE;
-            FNMADD  : fmt <= R_TYPE;
-
-            OP_IMM  : fmt <= I_TYPE;
-            JALR    : fmt <= I_TYPE;
-            LOAD    : fmt <= I_TYPE;
-            MISC_MEM: fmt <= I_TYPE;
-            SYSTEM  : fmt <= I_TYPE;
-            LOAD_FP : fmt <= I_TYPE;
-
-            STORE   : fmt <= S_TYPE;
-            STORE_FP: fmt <= S_TYPE;
-
-            BRANCH  : fmt <= B_TYPE;
-
-            AUIPC   : fmt <= U_TYPE;
-            LUI     : fmt <= U_TYPE;
-
-            JAL     : fmt <= J_TYPE;
-            default : fmt <= R_TYPE;
-        endcase
-
-    end
-
-    always @(*) begin
-        is_imm <= {{20{inst[31]}}, inst[31:25], fmt == I_TYPE ? inst[24:20] : inst[11:7]};
+        i_imm <= {{20{inst[31]}}, inst[31:25], inst[24:20]};
+        s_imm <= {{20{inst[31]}}, inst[31:25], inst[11:7]};
         u_imm <= {inst[31:12], 12'b0};
+        b_imm <= {{19{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0};
+        j_imm <= {{12{inst[31]}}, inst[19:12], inst[20], inst[30:25], inst[24:21], 1'b0};
+    end
 
-        if (fmt == B_TYPE) begin
-            bj_imm <= {{19{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0};
+`define ALU(A, OP, B) {3'b100,  A,                                 OP, B}
+`define LOAD(A, B)    {3'b010,  A, {  /* load */ 1'b0,        funct3}, B}
+`define STORE(A, B)   {3'b010,  A, {             1'b1,        funct3}, B}
+`define BRANCH(B)     {3'b001, pc, {             1'b1,        funct3}, B}
+`define JMP(A, B)     {3'b101,  A, {/* bypass */ 1'b0, INT_FUNC3_ADD}, B}
+
+    always @(posedge clk or negedge n_rst) begin
+        if (!n_rst) begin
+            {alu_en, mem_en, bru_en, op_a, op, op_b} <= 0;
+            fault <= 0;
         end else begin
-            bj_imm <= {{12{inst[31]}}, inst[19:12], inst[20], inst[30:25], inst[24:21], 1'b0};
+            case (opcode[6:2])
+                // R_TYPE
+                OPCODE_OP      : {alu_en, mem_en, bru_en, op_a, op, op_b} = `ALU(rf_a, {funct7[5],        funct3},  rf_b);
+
+                // I_TYPE
+                OPCODE_OP_IMM  : {alu_en, mem_en, bru_en, op_a, op, op_b} = `ALU(rf_a, {     1'b0,        funct3}, i_imm);
+                OPCODE_JALR    : {alu_en, mem_en, bru_en, op_a, op, op_b} = `JMP(rf_a, i_imm);
+                OPCODE_LOAD    : {alu_en, mem_en, bru_en, op_a, op, op_b} = `LOAD(rf_a, i_imm);
+
+                // S_TYPE
+                OPCODE_STORE   : {alu_en, mem_en, bru_en, op_a, op, op_b} = `STORE(rf_a, s_imm);
+
+                // B_TYPE
+                OPCODE_BRANCH  : {alu_en, mem_en, bru_en, op_a, op, op_b} = `BRANCH(b_imm);
+
+                // U_TYPE
+                OPCODE_AUIPC   : {alu_en, mem_en, bru_en, op_a, op, op_b} = `ALU(   pc, {    1'b0, INT_FUNC3_ADD}, u_imm);
+                OPCODE_LUI     : {alu_en, mem_en, bru_en, op_a, op, op_b} = `ALU(32'h0, {    1'b0, INT_FUNC3_ADD}, u_imm);
+
+                // J_TYPE
+                OPCODE_JAL     : {alu_en, mem_en, bru_en, op_a, op, op_b} = `JMP(pc, j_imm);
+
+                default        : begin
+                    {alu_en, mem_en, bru_en, op_a, op, op_b} = 0;
+                    fault <= 1;
+                end
+            endcase
         end
     end
 
