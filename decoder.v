@@ -89,7 +89,7 @@ module decoder (
 
                 default        : begin
                     // NOTE: ebreak and ecall will end up in this block
-                    {alu_en, mem_en, bru_en, op_a, op, op_b} <= 0;
+                    {alu_en, mem_en, bru_en, op_a, op, op_b} <= {3'b000, 68'bx};
                     fault <= 1;
                 end
             endcase
