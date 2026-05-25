@@ -28,6 +28,7 @@ module alu (
     end
     `endif
 
+    (* always_ff *)
     always @(posedge clk) begin
         if (!n_rst) begin
             out <= 0;

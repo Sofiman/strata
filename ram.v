@@ -14,6 +14,7 @@ module ram #(
 
     (* ram_style = "block" *) reg [XLEN-1:0] mem [DEPTH-1:0];
 
+    (* always_ff *)
     always @(posedge clk) begin
         if (write_enable[3]) mem[addr][31:24] <= wr_data[31:24];
         if (write_enable[2]) mem[addr][23:16] <= wr_data[23:16];

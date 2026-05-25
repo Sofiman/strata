@@ -28,6 +28,7 @@ module register_file #(
         end
     end
 
+    (* always_ff *)
     always @(posedge clk) begin
         if (wr__addr != ZERO_REG_ADDR && wr__en) begin
             mem[wr__addr] <= wr__data;

@@ -40,6 +40,7 @@ module decoder (
     reg [31:0] j_imm;
     reg [31:0] u_imm;
 
+    (* always_comb *)
     always @(*) begin
         i_imm <= {{20{inst[31]}}, inst[31:25], inst[24:20]};
         s_imm <= {{20{inst[31]}}, inst[31:25], inst[11:7]};
@@ -55,6 +56,7 @@ module decoder (
 `define JMP(A, B)     {3'b101,  A, {/* bypass */ 1'b0, INT_FUNC3_ADD}, B}
 `define NO_OP         'b0
 
+    (* always_ff *)
     always @(posedge clk or negedge n_rst) begin
         if (!n_rst) begin
             {alu_en, mem_en, bru_en, op_a, op, op_b} <= 0;

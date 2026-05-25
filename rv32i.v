@@ -140,6 +140,7 @@ module rv32i (
 
     `include "cfg/rv_isa_opcode.v"
 
+    (* always_comb *)
     reg branch_taken;
     always @(*) begin
         branch_taken <= 0;
@@ -158,6 +159,7 @@ module rv32i (
         end
     end
 
+    (* always_comb *)
     always @(*) begin
         if (bru_en & (!op[3] | branch_taken)) begin
             pc_next <= op_addr;
@@ -169,6 +171,7 @@ module rv32i (
     wire [31:0] mss_read_data_aligned = mss_read_data >> {op_addr[2:0], 3'b0};
     reg  [31:0] mss_data_out;
 
+    (* always_comb *)
     always @(*) begin
         case (op[1:0])
             2'b00: mss_data_out <= {{24{mss_read_data_aligned[7] & !op[2]}}, mss_read_data_aligned[7:0]};
@@ -188,6 +191,7 @@ module rv32i (
     assign rf_wr_en = (state == S_WRITEBACK) & (alu_en | (mem_en & mss_read_valid));
     assign rf_wr_data = alu_en ? alu_out : mss_data_out;
 
+    (* always_comb *)
     always @(*) begin
         state_next <= state;
         case (state)
@@ -197,6 +201,7 @@ module rv32i (
         endcase
     end
 
+    (* always_ff *)
     always @(posedge clk or negedge n_rst) begin
         if (!n_rst) begin
             state <= S_FETCH_DECODE;

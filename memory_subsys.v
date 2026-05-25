@@ -19,6 +19,7 @@ module memory_subsys (
     wire ram_en = porta_addr[31]; // 0x80000000
     wire leds_en = porta_addr[30]; // 0x40000000
 
+    (* always_comb *)
     always @(*) begin
         fault <= 1'b1;
         porta_read_valid <= 0;
@@ -31,6 +32,7 @@ module memory_subsys (
         if (leds_en) fault <= 1'b0;
     end
 
+    (* always_ff *)
     always @(posedge clk or negedge n_rst) begin
         if (!n_rst) begin
             leds <= 0;
