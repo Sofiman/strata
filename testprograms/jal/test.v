@@ -51,4 +51,6 @@ initial begin
     `assert_eq(pc, RET_ADDR_2);
     `assert_eq(uut.rf.wr__addr, REG_X10);
     `assert_eq(uut.rf.wr__data, 'h00000008);
+
+    ok = 1'b1;
 end

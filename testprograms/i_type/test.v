@@ -10,4 +10,5 @@ initial begin
     `assert_eq(uut.rf.wr__data, 'h00000003);
 
     /* nop */
+    ok = 1'b1;
 end

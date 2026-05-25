@@ -50,4 +50,5 @@ initial begin
     `assert_eq(uut.rf.wr__addr, REG_ZERO);
     `assert_eq(uut.rf.wr__data, 'h00000000);
 
+    ok = 1'b1;
 end

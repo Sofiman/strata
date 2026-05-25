@@ -19,4 +19,6 @@ initial begin
     wait_inst_retire();
     `assert_eq(uut.rf.wr__addr, REG_T2);
     `assert_eq(uut.rf.wr__data, 32'h0000abcd);
+
+    ok = 1'b1;
 end

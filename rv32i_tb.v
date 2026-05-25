@@ -17,7 +17,7 @@ module rv32i_tb();
 
     localparam DURATION = 10_000;
 
-    reg rst = 1'b0, clk = 1'b0;
+    reg rst = 1'b0, clk = 1'b0, ok = 1'b0;
     wire [5:0] leds;
 
     always begin
@@ -57,6 +57,8 @@ module rv32i_tb();
         $dumpfile(`VCD_OUTPUT);
         $dumpvars(/* infinite depth */ 0, rv32i_tb);
         #(DURATION)
+
+        if (!ok) $display("\033[31mTEST TIMED OUT\033[0m");
         $finish;
     end
 
