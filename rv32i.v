@@ -16,7 +16,7 @@ module rv32i (
     reg [31:0]  pc_next;
     wire [31:0] pc;
     wire [31:0] inst;
-    wire        inst_valid;
+    wire        ifetch_ready;
 
     // ALU
     (* keep *) wire [31:0] alu_out;
@@ -39,13 +39,15 @@ module rv32i (
     wire [31:0] op_b;
     wire [31:0] op_addr = op_a + $signed(op_b);
 
-    localparam S_FETCH_STALL  = 0;
-    localparam S_FETCH_DECODE = 1;
-    localparam S_EXECUTE      = 2;
-    localparam S_WRITEBACK    = 3;
+    localparam S_FETCH_DECODE = 0;
+    localparam S_EXECUTE      = 1;
+    localparam S_WRITEBACK    = 2;
     localparam STATE_BITS = $clog2(S_WRITEBACK + 1);
     reg [1:0] state;
     reg [1:0] state_next;
+
+    wire execute_ready = 1'b1;
+    wire writeback_ready = 1'b1;
     wire pc_next_write_enable = state_next == S_WRITEBACK;
 
     decoder decoder (
@@ -79,7 +81,7 @@ module rv32i (
         .addr(pc_next),
         .pc(pc),
         .inst(inst),
-        .inst_valid(inst_valid)
+        .ready(ifetch_ready)
     );
 
     memory_subsys memory_subsys (
@@ -124,13 +126,12 @@ module rv32i (
     );
 
     `ifdef BENCH
-    reg [127:0] _b__state_name;
+    reg [191:0] _b__state_name;
     always @(*) begin
         case (state)
-            S_FETCH_STALL : _b__state_name <= "FETCH_STALL";
-            S_FETCH_DECODE: _b__state_name <= "FETCH_DECODE";
-            S_EXECUTE     : _b__state_name <= "EXECUTE";
-            S_WRITEBACK   : _b__state_name <= "WRITEBACK";
+            S_FETCH_DECODE: _b__state_name <=    ifetch_ready ? "FETCH_DECODE" : "FETCH_DECODE (STALLING)";
+            S_EXECUTE     : _b__state_name <=   execute_ready ? "EXECUTE"      : "EXECUTE (STALLING)";
+            S_WRITEBACK   : _b__state_name <= writeback_ready ? "WRITEBACK"    : "WRITEBACK (STALLING)";
         endcase
     end
     `endif
@@ -181,16 +182,15 @@ module rv32i (
     always @(*) begin
         state_next <= state;
         case (state)
-            S_FETCH_DECODE: state_next <= S_EXECUTE;
-            S_EXECUTE:      state_next <= S_WRITEBACK;
-            S_WRITEBACK:    state_next <= bru_en ? S_FETCH_STALL : S_FETCH_DECODE;
-            S_FETCH_STALL:  if (inst_valid) state_next <= S_FETCH_DECODE;
+            S_FETCH_DECODE: if (ifetch_ready)    state_next <= S_EXECUTE;
+            S_EXECUTE:      if (execute_ready)   state_next <= S_WRITEBACK;
+            S_WRITEBACK:    if (writeback_ready) state_next <= S_FETCH_DECODE;
         endcase
     end
 
     always @(posedge clk or negedge n_rst) begin
         if (!n_rst) begin
-            state <= S_FETCH_STALL;
+            state <= S_FETCH_DECODE;
         end else begin
             state <= state_next;
         end
