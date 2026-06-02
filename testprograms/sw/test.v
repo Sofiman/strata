@@ -3,7 +3,7 @@ localparam ROM_BASE_ADDR = 'h40000000;
 localparam TEST_VALUE = 32'h87654321;
 
 initial begin
-    uut.memory_subsys.ram.mem[0] = 'hfefefefe;
+    uut.u_load_store.memory_subsys.ram.mem[0] = 'hfefefefe;
 
     /* lui t1, 0x87654 */
     wait_inst_retire();
@@ -21,7 +21,7 @@ initial begin
 
     /* sw t0, 0(t0) */
     wait_inst_retire();
-    `assert_eq(uut.memory_subsys.ram.mem[0], TEST_VALUE);
+    `assert_eq(uut.u_load_store.memory_subsys.ram.mem[0], TEST_VALUE);
 
     ok = 1'b1;
 end

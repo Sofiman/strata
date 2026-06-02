@@ -8,12 +8,6 @@ module rv32i (
 
     wire n_rst = !rst;
 
-    // Memory Subsystem
-    wire [31:0] mss_read_data;
-    wire        mss_read_valid;
-    reg   [3:0] mss_write_strobe;
-    reg  [31:0] mss_write_data;
-
     // Fetch
     reg [31:0]  pc_next;
     wire [31:0] pc;
@@ -41,6 +35,11 @@ module rv32i (
     wire [31:0] op_b;
     wire [31:0] op_addr = op_a + $signed(op_b);
 
+    // Load Store Unit
+    wire [31:0] mem_out;
+    wire mem_busy;
+    wire mem_valid;
+
     localparam S_FETCH_DECODE = 0;
     localparam S_EXECUTE      = 1;
     localparam S_WRITEBACK    = 2;
@@ -49,8 +48,12 @@ module rv32i (
     reg [1:0] state_next;
 
     wire execute_ready = 1'b1;
-    wire writeback_ready = 1'b1;
-    wire pc_next_write_enable = state_next == S_WRITEBACK;
+    wire alu_ready = 1'b1;
+    wire writeback_ready = mem_en ? (!mem_busy & mem_valid) : alu_ready;
+
+    wire pc_next_write_enable = (state == S_WRITEBACK) & writeback_ready;
+    assign rf_wr_en           = (state == S_WRITEBACK) & writeback_ready;
+    assign rf_wr_data        = alu_en ? alu_out : mem_out;
 
     decoder decoder (
         .clk(clk),
@@ -86,22 +89,6 @@ module rv32i (
         .ready(ifetch_ready)
     );
 
-    memory_subsys memory_subsys (
-        .n_rst(n_rst),
-        .clk(clk),
-
-        .porta_addr(op_addr),
-        .porta_read_enable(mem_en & !op[3]),
-        .porta_read_data(mss_read_data),
-        .porta_read_valid(mss_read_valid),
-        .porta_write_enable(mss_write_strobe),
-        .porta_write_data(mss_write_data),
-
-        .fault(),
-
-        .leds(leds)
-    );
-
     register_file rf (
         .clk(clk),
 
@@ -114,6 +101,22 @@ module rv32i (
 
         .portb__addr(rf_addr_b),
         .portb__read_data(rf_b)
+    );
+
+    load_store u_load_store (
+        .n_rst(n_rst),
+        .clk(clk),
+
+        .addr(op_addr),
+        .op(op),
+        .data_in(rf_b),
+        .data_out(mem_out),
+
+        .i_valid(mem_en),
+        .o_valid(mem_valid),
+        .o_busy(mem_busy),
+
+        .leds(leds)
     );
 
     alu alu (
@@ -167,29 +170,6 @@ module rv32i (
             pc_next <= pc + 4;
         end
     end
-
-    wire [31:0] mss_read_data_aligned = mss_read_data >> {op_addr[2:0], 3'b0};
-    reg  [31:0] mss_data_out;
-
-    (* always_comb *)
-    always @(*) begin
-        case (op[1:0])
-            2'b00: mss_data_out <= {{24{mss_read_data_aligned[7] & !op[2]}}, mss_read_data_aligned[7:0]};
-            2'b01: mss_data_out <= {{16{mss_read_data_aligned[15] & !op[2]}}, mss_read_data_aligned[15:0]};
-            2'b10, 2'b11: mss_data_out <= mss_read_data_aligned;
-            // TODO: Illegal instruction: 2'b11
-        endcase
-
-        mss_write_data <= rf_b << {op_addr[1:0], 3'b0};
-        if (mem_en & op[3]) begin
-            mss_write_strobe <= {op[1], op[1:0], 1'b1} << op_addr[1:0];
-        end else begin
-            mss_write_strobe <= 4'b0;
-        end
-    end
-
-    assign rf_wr_en = (state == S_WRITEBACK) & (alu_en | (mem_en & mss_read_valid));
-    assign rf_wr_data = alu_en ? alu_out : mss_data_out;
 
     (* always_comb *)
     always @(*) begin

@@ -3,7 +3,7 @@ localparam ROM_BASE_ADDR = 'h40000000;
 localparam TEST_VALUE = 32'habcdef01;
 
 initial begin
-    uut.memory_subsys.ram.mem[0] = TEST_VALUE;
+    uut.u_load_store.memory_subsys.ram.mem[0] = TEST_VALUE;
 
     /* lui t0, 0x80000 */
     wait_inst_retire();
