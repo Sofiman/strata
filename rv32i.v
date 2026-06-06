@@ -2,14 +2,13 @@ module rv32i (
     input rst,
     input clk,
 
-    input key,
     output [5:0] leds
 );
 
     wire n_rst = !rst;
 
     // Fetch
-    reg [31:0]  pc_next;
+    wire [31:0] pc_next;
     wire [31:0] pc;
     wire [31:0] inst;
     wire        ifetch_busy;
@@ -147,6 +146,21 @@ module rv32i (
         .out(alu_out)
     );
 
+    bru bru (
+        .clk(clk),
+        .n_rst(n_rst),
+
+        .i_valid(bru_en),
+
+        .op(op),
+        .addr(op_addr),
+        .rf_a(rf_a),
+        .rf_b(rf_b),
+        .pc(pc),
+
+        .pc_next(pc_next)
+    );
+
     `ifdef BENCH
     reg [191:0] _b__state_name;
     always @(*) begin
@@ -157,36 +171,6 @@ module rv32i (
         endcase
     end
     `endif
-
-    `include "cfg/rv_isa_opcode.v"
-
-    (* always_comb *)
-    reg branch_taken;
-    always @(*) begin
-        branch_taken <= 0;
-        if (bru_en) begin
-            case (op[2:0])
-                BRANCH_FUNCT3_BEQ:  branch_taken <= rf_a == rf_b;
-                BRANCH_FUNCT3_BNE:  branch_taken <= rf_a != rf_b;
-                BRANCH_FUNCT3_BLT:  branch_taken <= $signed(rf_a) < $signed(rf_b);
-                BRANCH_FUNCT3_BGE:  branch_taken <= $signed(rf_a) >= $signed(rf_b);
-                BRANCH_FUNCT3_BLTU: branch_taken <= rf_a < rf_b;
-                BRANCH_FUNCT3_BGEU: branch_taken <= rf_a >= rf_b;
-                default: begin
-                    // TODO: Illegal instruction
-                end
-            endcase
-        end
-    end
-
-    (* always_comb *)
-    always @(*) begin
-        if (bru_en & (!op[3] | branch_taken)) begin
-            pc_next <= op_addr;
-        end else begin
-            pc_next <= pc + 4;
-        end
-    end
 
     (* always_ff *)
     always @(posedge clk or negedge n_rst) begin
