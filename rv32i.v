@@ -46,7 +46,6 @@ module rv32i (
     localparam S_WRITEBACK    = 2;
     localparam STATE_BITS = $clog2(S_WRITEBACK + 1);
     reg [STATE_BITS-1:0] state;
-    reg [STATE_BITS-1:0] state_next;
 
     wire ifetch_ready = !ifetch_busy & ifetch_valid;
     wire execute_ready = 1'b1;
@@ -189,22 +188,16 @@ module rv32i (
         end
     end
 
-    (* always_comb *)
-    always @(*) begin
-        state_next <= state;
-        case (state)
-            S_FETCH_DECODE: if (ifetch_ready)    state_next <= S_EXECUTE;
-            S_EXECUTE:      if (execute_ready)   state_next <= S_WRITEBACK;
-            S_WRITEBACK:    if (writeback_ready) state_next <= S_FETCH_DECODE;
-        endcase
-    end
-
     (* always_ff *)
     always @(posedge clk or negedge n_rst) begin
         if (!n_rst) begin
             state <= S_FETCH_DECODE;
         end else begin
-            state <= state_next;
+            case (state)
+                S_FETCH_DECODE: if (ifetch_ready)    state <= S_EXECUTE;
+                S_EXECUTE:      if (execute_ready)   state <= S_WRITEBACK;
+                S_WRITEBACK:    if (writeback_ready) state <= S_FETCH_DECODE;
+            endcase
         end
     end
 
