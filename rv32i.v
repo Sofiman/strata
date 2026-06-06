@@ -45,8 +45,8 @@ module rv32i (
     localparam S_EXECUTE      = 1;
     localparam S_WRITEBACK    = 2;
     localparam STATE_BITS = $clog2(S_WRITEBACK + 1);
-    reg [1:0] state;
-    reg [1:0] state_next;
+    reg [STATE_BITS-1:0] state;
+    reg [STATE_BITS-1:0] state_next;
 
     wire ifetch_ready = !ifetch_busy & ifetch_valid;
     wire execute_ready = 1'b1;
