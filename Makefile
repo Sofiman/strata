@@ -33,7 +33,7 @@ endif
 
 VCD_OUTPUT ?= $*_tb.vcd
 %_tb.out: %_tb.v $(filter-out $(wildcard *_tb.v),$(wildcard *.v))
-	iverilog -o $@ -D VCD_OUTPUT=\"$(VCD_OUTPUT)\" $(IVERILOG_FLAGS) $^
+	iverilog -Wimplicit -Wportbind -Wselect-range -Wfloating-nets -o $@ -D VCD_OUTPUT=\"$(VCD_OUTPUT)\" $(IVERILOG_FLAGS) $^
 
 %_tb.vcd: %_tb.out
 	@./$<
