@@ -12,7 +12,8 @@ module rv32i (
     reg [31:0]  pc_next;
     wire [31:0] pc;
     wire [31:0] inst;
-    wire        ifetch_ready;
+    wire        ifetch_busy;
+    wire        ifetch_valid;
 
     // ALU
     (* keep *) wire [31:0] alu_out;
@@ -47,9 +48,20 @@ module rv32i (
     reg [1:0] state;
     reg [1:0] state_next;
 
+    wire ifetch_ready = !ifetch_busy & ifetch_valid;
     wire execute_ready = 1'b1;
     wire alu_ready = 1'b1;
     wire writeback_ready = mem_en ? (!mem_busy & mem_valid) : alu_ready;
+
+    reg n_rst_q;
+
+    always @(posedge clk or negedge n_rst) begin
+        if (!n_rst) begin
+            n_rst_q <= 0;
+        end else begin
+            n_rst_q <= 1;
+        end
+    end
 
     wire pc_next_write_enable = (state == S_WRITEBACK) & writeback_ready;
     assign rf_wr_en           = (state == S_WRITEBACK) & writeback_ready;
@@ -82,11 +94,17 @@ module rv32i (
     ifetch u_ifetch (
         .n_rst(n_rst),
         .clk(clk),
+
         .addr_write_enable(pc_next_write_enable),
         .addr(pc_next),
+
         .pc(pc),
         .inst(inst),
-        .ready(ifetch_ready)
+
+        .i_busy(1'b0),
+        .i_valid(!n_rst_q | pc_next_write_enable),
+        .o_busy(ifetch_busy),
+        .o_valid(ifetch_valid)
     );
 
     register_file rf (

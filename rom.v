@@ -31,12 +31,9 @@ module rom #(
     end
 
     (* always_ff *)
-    always @(posedge clk or negedge n_rst) begin
-        if (!n_rst) begin
-            data <= 0;
-        end else if (read_enable) begin
+    always @(negedge clk) begin
+        if (read_enable)
             data <= mem[addr];
-        end
     end
 
     endmodule

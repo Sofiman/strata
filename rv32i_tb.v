@@ -36,7 +36,7 @@ module rv32i_tb();
     task wait_inst_retire();
         begin
             wait(uut.state !== uut.S_WRITEBACK);
-            wait(uut.state === uut.S_WRITEBACK);
+            wait(uut.state === uut.S_WRITEBACK && uut.writeback_ready);
             #(`CLK_HALF_PERIOD/16);
         end
     endtask
