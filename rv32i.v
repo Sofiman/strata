@@ -201,10 +201,17 @@ module rv32i (
 
 endmodule
 
-// TODO: Validation testbenches for regression testing
-// TODO: Load/Store unit
-// TODO: Attach MMIO UART
-// TODO: Interrupt unit
-// TODO: Multiply extension
-// TODO: Pipelining
-// TODO: Simple branch predictor (same-as-before, two-mispredictions-in-a-row) -- Source: https://www.youtube.com/watch?v=mGCClZpjX0g
+// TODO:
+// - [X] Validation testbenches for regression testing
+// - [X] Load/Store unit
+// - [ ] Attach MMIO UART
+// - [ ] Interrupt unit
+// - [ ] Multiply extension
+// - [ ] Divide extension
+// - [.] Pipelining (https://zipcpu.com/blog/2017/08/14/strategies-for-pipelining.html, https://zipcpu.com/zipcpu/2017/08/23/cpu-pipeline.html)
+// - [ ] Simpl branch predictor (same-as-before, two-mispredictions-in-a-row) -- Source: https://www.youtube.com/watch?v=mGCClZpjX0g, https://danluu.com/branch-prediction/
+// - [ ] Zihintpause
+// - [ ] Zicsr: CSRs
+// - [ ] Zicntr: counters cycle, time, instret
+// - [ ] Zicond
+// - [ ] Compressed instructions
