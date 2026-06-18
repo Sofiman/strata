@@ -7,8 +7,11 @@ else
   YOSYS_SHOW := ""
 endif
 
-%.synth.json: %.v $(filter-out $(wildcard *_tb.v),$(wildcard *.v))
-	yosys -p "read_verilog $^; ${YOSYS_SHOW} synth_gowin -top $* -json $@ -family gw2a"
+TOPLEVEL_FILES = toplevel.v $(wildcard debug/uart/*.v) $(filter-out $(wildcard debug/uartscope/*_tb.v),$(wildcard debug/uartscope/*.v)) clk_div.v
+SRC_FILES = $(filter-out $(TOPLEVEL_FILES),$(filter-out $(wildcard *_tb.v),$(wildcard *.v)))
+
+%.synth.json: %.v $(SRC_FILES) $(TOPLEVEL_FILES)
+	yosys -p "read_verilog $^; ${YOSYS_SHOW} synth_gowin -top $* -json $@ -family gw2a" -q
 
 %.pnr.json: %.synth.json $(CONSTRAINT_FILE)
 	nextpnr-himbaechel --json $< --write $@ --freq 100 --device GW2AR-LV18QN88C8/I7 --vopt family=GW2A-18C --vopt cst=$(CONSTRAINT_FILE)
@@ -32,7 +35,7 @@ endif
 # --- Simulation
 
 VCD_OUTPUT ?= $*_tb.vcd
-%_tb.out: %_tb.v $(filter-out $(wildcard *_tb.v),$(wildcard *.v))
+%_tb.out: %_tb.v $(SRC_FILES)
 	iverilog -Wimplicit -Wportbind -Wselect-range -Wfloating-nets -o $@ -D VCD_OUTPUT=\"$(VCD_OUTPUT)\" $(IVERILOG_FLAGS) $^
 
 %_tb.vcd: %_tb.out
@@ -44,9 +47,9 @@ VCD_OUTPUT ?= $*_tb.vcd
 # --- Tests
 
 %.test: testprograms/%/test.v testprograms/%/rom.hex
-	$(MAKE) -B VCD_OUTPUT=testprograms/$*/result.vcd IVERILOG_FLAGS="-D TEST_SCRIPT=\\\"testprograms/$*/test.v\\\" -D ROM_FILE=\\\"testprograms/$*/rom.hex\\\"" rv32i_tb.vcd
+	@$(MAKE) -B VCD_OUTPUT=testprograms/$*/result.vcd IVERILOG_FLAGS="-D TEST_SCRIPT=\\\"testprograms/$*/test.v\\\" -D ROM_FILE=\\\"testprograms/$*/rom.hex\\\"" rv32i_tb.vcd
 
-test: $(addsuffix .test,$(notdir $(wildcard testprograms/*)))
+test: $(addsuffix .test,$(notdir $(shell find testprograms ! -name testprograms -and -maxdepth 1 -type d)))
 
 clean:
 	$(RM) *.pnr.json *.synth.json *.vcd *.out *.fs

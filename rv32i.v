@@ -2,7 +2,8 @@ module rv32i (
     input rst,
     input clk,
 
-    output [5:0] leds
+    output [5:0] leds,
+    output [127:0] snoop_data
 );
 
     wire n_rst = !rst;
@@ -63,7 +64,7 @@ module rv32i (
 
     wire pc_next_write_enable = (state == S_WRITEBACK) & writeback_ready;
     assign rf_wr_en           = (state == S_WRITEBACK) & writeback_ready;
-    assign rf_wr_data        = alu_en ? alu_out : mem_out;
+    assign rf_wr_data         = alu_en ? alu_out : mem_out;
 
     decoder decoder (
         .clk(clk),
@@ -184,6 +185,19 @@ module rv32i (
             endcase
         end
     end
+
+    assign snoop_data = {
+        pc,
+        inst,
+        rf_wr_data,
+
+        4'b0,
+        rf_addr_a, rf_addr_b, rf_addr_out,                                    // 5 + 5 + 5     = 15
+        ifetch_ready, /* ifetch i_valid */ (!n_rst_q | pc_next_write_enable), // 1 + 1         = 2
+        op, alu_en, bru_en, mem_en,                                           // 4 + 1 + 1 + 1 = 8
+        writeback_ready,                                                      //               1
+        state                                                                 //               2
+    };
 
 endmodule
 

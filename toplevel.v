@@ -1,48 +1,43 @@
 module toplevel (
     input rst,
     input clk,
+
     input key,
+
+    input uart_rx,
+    output uart_tx,
+
     output [5:0] leds
 );
 
-    /*
-   reg wr__en;
+    localparam CAPTURE_WIDTH = 128;
+    localparam CAPTURE_SAMPLES = 512;
 
-   (* keep *) wire [31:0] data_a;
-   (* keep *) wire [31:0] data_b;
-   (* keep *) wire [4:0] addr_a;
-   (* keep *) wire [4:0] addr_b;
-   (* keep *) wire [4:0] addr_wr;
-   (* keep *) wire [31:0] data_wr;
+    wire [CAPTURE_WIDTH-1:0] snoop_data;
+    wire [5:0] leds_n;
+    assign leds = ~leds_n;
 
-    register_file rf (
+    rv32i cpu (
+        .rst(rst),
         .clk(clk),
 
-        .wr__en(wr__en),
-        .wr__data(data_wr),
-        .wr__addr(addr_wr),
-
-        .porta__addr(addr_a),
-        .porta__read_data(data_a),
-
-        .portb__addr(addr_b),
-        .portb__read_data(data_b)
+        .leds(leds_n),
+        .snoop_data(snoop_data)
     );
 
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
-            leds <= 0;
-            wr__en <= 0;
-        end else begin
-            wr__en <= key;
-            leds[0] <= data_a;
-            leds[1] <= data_b;
-            leds[2] <= addr_a;
-            leds[3] <= addr_b;
-            leds[4] <= data_wr;
-            leds[5] <= key;
-        end
-    end
-    */
+    uartscope #(
+        .INPUT_CLK_FREQ(27_000_000),
+
+        .CAPTURE_WIDTH(CAPTURE_WIDTH),
+        .CAPTURE_SAMPLES(CAPTURE_SAMPLES)
+    ) scope (
+        .clk(clk),
+        .n_rst(!rst),
+
+        .i_uart_rx(uart_rx),
+        .o_uart_tx(uart_tx),
+
+        .i_capture_data(snoop_data)
+    );
 
 endmodule
