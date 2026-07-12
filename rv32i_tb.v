@@ -33,15 +33,15 @@ module rv32i_tb();
         .leds(leds)
     );
 
-    task wait_inst_retire();
-        begin
-            wait(uut.state !== uut.S_WRITEBACK);
-            wait(uut.state === uut.S_WRITEBACK && uut.writeback_ready);
-            #(`CLK_HALF_PERIOD/16);
-        end
-    endtask
+    //task wait_inst_retire();
+    //    begin
+    //        wait(uut.state !== uut.S_WRITEBACK);
+    //        wait(uut.state === uut.S_WRITEBACK && uut.writeback_ready);
+    //        #(`CLK_HALF_PERIOD/16);
+    //    end
+    //endtask
 
-    wire [31:0] pc = uut.u_ifetch.retired_inst_pc;
+    //wire [31:0] pc = uut.u_ifetch.retired_inst_pc;
 
     initial begin
         $display("\n--- RESET ---");

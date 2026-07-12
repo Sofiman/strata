@@ -32,6 +32,7 @@ module ifetch (
     reg r_busy;
     assign o_busy = (r_busy) && (!o_valid || i_busy);
 
+    /*
     (* always_ff *)
     always @(posedge clk or negedge n_rst) begin
         if (!n_rst) begin
@@ -69,6 +70,42 @@ module ifetch (
                     timeout <= timeout - 1;
             end
         end
-    end
+    end*/
+
+   always @(posedge clk or negedge n_rst) begin
+       if (!n_rst) begin
+            r_busy  <= 1'b0;
+            o_valid <= 1'b0;
+            clk_enable <= 1'b0;
+
+            pc <= 32'h40000000;
+            inst <= 32'h0;
+            retired_inst_pc <= 0;
+        end else if (!o_valid & !r_busy) begin
+            if (i_valid) begin
+                r_busy <= 1;
+                clk_enable <= 1;
+            end
+        end else if (o_valid & i_busy) begin
+            o_valid <= 0;
+            clk_enable <= 0;
+        end else if (clk_enable) begin
+            o_valid <= 1;
+            inst <= inst_next;
+            retired_inst_pc <= pc;
+        end
+
+
+
+
+
+
+       /*else if (!clk_enable) begin
+           if (ce) begin
+           end
+       end else if (!i_busy) begin
+       end else begin
+       end*/
+   end
 
 endmodule

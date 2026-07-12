@@ -1,25 +1,22 @@
 module register_file #(
     parameter XLEN = 32 // bitwidth (32 or 64 bits)
 ) (
-    input             clk,
+    input                 clk,
 
-    input             wr__en,
-    input [4:0]       wr__addr,
-    input [XLEN-1:0]  wr__data,
+    input                 wr__en,
+    input      [4:0]      wr__addr,
+    input      [XLEN-1:0] wr__data,
 
-    input  [4:0]      porta__addr,
-    output [XLEN-1:0] porta__read_data,
+    input      [4:0]      porta__addr,
+    output reg [XLEN-1:0] porta__read_data,
 
-    input [4:0]       portb__addr,
-    output [XLEN-1:0] portb__read_data
+    input      [4:0]      portb__addr,
+    output reg [XLEN-1:0] portb__read_data
 );
 
     localparam ZERO_REG_ADDR = 0;
 
     (* ram_style = "distributed" *) reg [XLEN-1:0] mem [31:0];
-
-    assign porta__read_data = mem[porta__addr];
-    assign portb__read_data = mem[portb__addr];
 
     integer i;
     initial begin
@@ -28,12 +25,19 @@ module register_file #(
         end
     end
 
+    // TODO: Should be registered, to use block ram, need to update the decoder to not forward
+    // the RF registers
+    always @(*) porta__read_data <= mem[porta__addr];
+    always @(*) portb__read_data <= mem[portb__addr];
+
     (* always_ff *)
     always @(posedge clk) begin
         if (wr__addr != ZERO_REG_ADDR && wr__en) begin
             mem[wr__addr] <= wr__data;
         end
     end
+
+    // TODO: Implement register forwarding for RAW
 
     `ifdef BENCH
     function [79:0] reg_name (input [4:0] reg_addr);

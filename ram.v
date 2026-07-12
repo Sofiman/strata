@@ -48,6 +48,7 @@ module ram #(
                 if (timeout == 2'b00) begin
                     o_valid <= 1'b1;
                     clk_enable <= 1'b0;
+                    r_busy <= 1'b0;
                 end else
                     timeout <= timeout - 1;
             end
@@ -61,11 +62,13 @@ module ram #(
             if (write_enable[2]) mem[addr][23:16] <= write_data[23:16];
             if (write_enable[1]) mem[addr][15: 8] <= write_data[15: 8];
             if (write_enable[0]) mem[addr][ 7: 0] <= write_data[ 7: 0];
-
-            if (write_enable == 'b0) begin
-                read_data <= mem[addr];
-            end
         end
+    end
+
+    (* always_ff *)
+    always @(negedge clk) begin
+        if (clk_enable && (write_enable == 'b0))
+            read_data <= mem[addr];
     end
 
 endmodule

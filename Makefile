@@ -8,7 +8,7 @@ else
 endif
 
 TOPLEVEL_FILES = toplevel.v $(wildcard debug/uart/*.v) $(filter-out $(wildcard debug/uartscope/*_tb.v),$(wildcard debug/uartscope/*.v)) clk_div.v
-SRC_FILES = $(filter-out $(TOPLEVEL_FILES),$(filter-out $(wildcard *_tb.v),$(wildcard *.v)))
+SRC_FILES = $(filter-out $(TOPLEVEL_FILES),$(shell find cpu -name '*.v' -and \! -name '*_tb.v' -type f)) memory_subsys.v rom.v ram.v
 
 %.synth.json: %.v $(SRC_FILES) $(TOPLEVEL_FILES)
 	yosys -p "read_verilog $^; ${YOSYS_SHOW} synth_gowin -top $* -json $@ -family gw2a" -q

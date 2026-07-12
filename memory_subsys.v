@@ -5,17 +5,18 @@ module memory_subsys (
     input      [31:0] addr,
     input      [3:0]  write_enable,
     input      [31:0] write_data,
-    output reg [31:0] read_data,
+    output     [31:0] read_data,
 
     input            i_valid,
     input            i_busy,
-    output reg       o_valid,
-    output reg       o_busy,
-    output reg       fault,
+    output           o_valid,
+    output           o_busy,
+    output           fault,
 
     output reg [5:0] leds
 );
 
+/*
     wire [31:0] ram_data;
     wire        ram_o_valid;
     wire        ram_o_busy;
@@ -26,8 +27,8 @@ module memory_subsys (
     wire ram_sel = addr[31]; // 0x80000000
     wire leds_sel = addr[30]; // 0x40000000
 
-    (* always_comb *)
-    always @(*) begin
+    (* always_ff *)
+    always @(posedge clk) begin
         // Arbitrer, priority encoder
         casez ({ram_sel, leds_sel})
             'b1?: {fault, o_valid, o_busy, read_data} <= {1'b0,  ram_o_valid,  ram_o_busy, ram_data};
@@ -62,12 +63,12 @@ module memory_subsys (
         .addr(addr[10:2]),
         .write_enable(write_enable),
         .write_data(write_data),
-        .read_data(ram_data),
+        .read_data(read_data),
 
         .i_busy(i_busy),
-        .i_valid(ram_en),
-        .o_busy(ram_o_busy),
-        .o_valid(ram_o_valid)
+        .i_valid(i_valid),
+        .o_busy(o_busy),
+        .o_valid(o_valid)
     );
 
 endmodule

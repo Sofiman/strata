@@ -2,6 +2,11 @@ module decoder (
     input clk,
     input n_rst,
 
+    input      i_valid,
+    input      i_busy,
+    output reg o_valid,
+    output     o_busy,
+
     input [31:0]   pc,
     input [31:0] inst,
 
@@ -14,7 +19,7 @@ module decoder (
     output reg [31:0] op_a,
     output reg [31:0] op_b,
 
-    output     [ 4:0] rf_addr_out,
+    output reg [ 4:0] rf_addr_out,
     output     [ 4:0] rf_addr_a,
     input      [31:0] rf_a,
     output     [ 4:0] rf_addr_b,
@@ -32,7 +37,9 @@ module decoder (
 
     assign rf_addr_a   = rs1;
     assign rf_addr_b   = rs2;
-    assign rf_addr_out = rd;
+
+    assign o_busy = o_valid && i_busy;
+    wire ce = i_valid & !o_busy;
 
     reg [31:0] i_imm;
     reg [31:0] s_imm;
@@ -59,9 +66,11 @@ module decoder (
     (* always_ff *)
     always @(posedge clk or negedge n_rst) begin
         if (!n_rst) begin
-            {alu_en, mem_en, bru_en, op_a, op, op_b} <= 0;
+            o_valid <= 0;
             fault <= 0;
-        end else begin
+        end else if (ce) begin
+            o_valid <= 1'b1;
+            rf_addr_out <= rd;
             case (opcode[6:2])
                 // R_TYPE
                 OPCODE_OP      : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `ALU(rf_a, {funct7[5],        funct3},  rf_b);
@@ -95,6 +104,8 @@ module decoder (
                     fault <= 1;
                 end
             endcase
+        end else begin
+            o_valid <= 1'b0;
         end
     end
 
