@@ -48,6 +48,7 @@ VCD_OUTPUT ?= $*_tb.vcd
 
 %.test: testprograms/%/test.v testprograms/%/rom.hex
 	@$(MAKE) -B VCD_OUTPUT=testprograms/$*/result.vcd IVERILOG_FLAGS="-D TEST_SCRIPT=\\\"testprograms/$*/test.v\\\" -D ROM_FILE=\\\"testprograms/$*/rom.hex\\\"" rv32i_tb.vcd
+	unlink testprograms/last.result.vcd; ln -s $*/result.vcd testprograms/last.result.vcd
 
 test: $(addsuffix .test,$(notdir $(shell find testprograms ! -name testprograms -and -maxdepth 1 -type d)))
 

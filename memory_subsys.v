@@ -2,16 +2,13 @@ module memory_subsys (
     input n_rst,
     input clk,
 
-    input      [31:0] addr,
-    input      [3:0]  write_enable,
-    input      [31:0] write_data,
-    output     [31:0] read_data,
-
-    input            i_valid,
-    input            i_busy,
-    output           o_valid,
-    output           o_busy,
-    output           fault,
+    input         mem_valid,
+    output        mem_ready,
+    input  [31:0] mem_addr,
+    input  [ 3:0] mem_strobe,
+    input  [31:0] mem_write_data,
+    output [31:0] mem_read_data,
+    output        mem_fault,
 
     output reg [5:0] leds
 );
@@ -49,24 +46,28 @@ module memory_subsys (
         if (!n_rst) begin
             leds <= 0;
         end else begin
-            if (leds_en & write_enable[0])
-                leds <= write_data[7:0];
+            if (leds_en)
+                leds <= leds ^ 'hff;
         end
     end
 
-    wire ram_en = i_valid & ram_sel;
+    wire ram_en = i_valid & ram_sel;*/
+
+   wire o_busy;
+   wire o_valid;
+   assign mem_ready = o_valid & !o_busy;
 
     ram ram (
         .n_rst(n_rst),
         .clk(clk),
 
-        .addr(addr[10:2]),
-        .write_enable(write_enable),
-        .write_data(write_data),
-        .read_data(read_data),
+        .addr(mem_addr[10:2]),
+        .write_enable(mem_strobe),
+        .write_data(mem_write_data),
+        .read_data(mem_read_data),
 
-        .i_busy(i_busy),
-        .i_valid(i_valid),
+        .i_busy(!mem_valid),
+        .i_valid(mem_valid),
         .o_busy(o_busy),
         .o_valid(o_valid)
     );

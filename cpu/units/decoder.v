@@ -2,15 +2,15 @@ module decoder (
     input clk,
     input n_rst,
 
-    input      i_valid,
-    input      i_busy,
-    output reg o_valid,
-    output     o_busy,
+    input        up_clear,
+    input        up_valid,
+    output       up_ready,
+    input [31:0] up_pc,
+    input [31:0] up_inst,
 
-    input [31:0]   pc,
-    input [31:0] inst,
-
-    output reg        fault,
+    // Downstream
+    output reg        dw_valid,
+    input             dw_ready,
 
     output reg        alu_en,
     output reg        mem_en,
@@ -28,6 +28,9 @@ module decoder (
 
     `include "cfg/rv_isa_opcode.v"
 
+    reg fault;
+    wire [31:0] inst = up_inst;
+
     wire [6:0] funct7 = inst[31:25];
     wire [4:0] rs2    = inst[24:20];
     wire [4:0] rs1    = inst[19:15];
@@ -37,9 +40,6 @@ module decoder (
 
     assign rf_addr_a   = rs1;
     assign rf_addr_b   = rs2;
-
-    assign o_busy = o_valid && i_busy;
-    wire ce = i_valid & !o_busy;
 
     reg [31:0] i_imm;
     reg [31:0] s_imm;
@@ -59,17 +59,38 @@ module decoder (
 `define ALU(A, OP, B) {3'b100,  A,                                 OP, B}
 `define LOAD(A, B)    {3'b010,  A, {  /* load */ 1'b0,        funct3}, B}
 `define STORE(A, B)   {3'b010,  A, {             1'b1,        funct3}, B}
-`define BRANCH(B)     {3'b001, pc, {             1'b1,        funct3}, B}
+`define BRANCH(B)     {3'b001, up_pc, {             1'b1,        funct3}, B}
 `define JMP(A, B)     {3'b101,  A, {/* bypass */ 1'b0, INT_FUNC3_ADD}, B}
 `define NO_OP         'b0
 
+    reg [4:0] prev_rd;
     (* always_ff *)
     always @(posedge clk or negedge n_rst) begin
-        if (!n_rst) begin
-            o_valid <= 0;
+        if (!n_rst | up_clear) begin
+            prev_rd <= 5'b0;
+        end else if (up_valid & dw_ready)
+            prev_rd <= rd;
+    end
+
+    wire raw = prev_rd != 5'b0 && (prev_rd == rs1 || prev_rd == rs2);
+
+    reg [1:0] raw_stall;
+
+    (* always_ff *)
+    always @(posedge clk or negedge n_rst) begin
+        if (!n_rst | up_clear) begin
+            dw_valid <= 1'b0;
+        end else if (up_ready) begin
+            dw_valid <= up_valid;
+        end else if (raw || raw_stall != 2'b0) begin
+            dw_valid <= 1'b0;
+        end
+    end
+
+    (* always_ff *)
+    always @(posedge clk) begin
+        if (up_valid & up_ready) begin
             fault <= 0;
-        end else if (ce) begin
-            o_valid <= 1'b1;
             rf_addr_out <= rd;
             case (opcode[6:2])
                 // R_TYPE
@@ -92,11 +113,11 @@ module decoder (
                 OPCODE_BRANCH  : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `BRANCH(b_imm);
 
                 // U_TYPE
-                OPCODE_AUIPC   : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `ALU(   pc, {    1'b0, INT_FUNC3_ADD}, u_imm);
+                OPCODE_AUIPC   : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `ALU(up_pc, {    1'b0, INT_FUNC3_ADD}, u_imm);
                 OPCODE_LUI     : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `ALU(32'h0, {    1'b0, INT_FUNC3_ADD}, u_imm);
 
                 // J_TYPE
-                OPCODE_JAL     : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `JMP(pc, j_imm);
+                OPCODE_JAL     : {alu_en, mem_en, bru_en, op_a, op, op_b} <= `JMP(up_pc, j_imm);
 
                 default        : begin
                     // NOTE: ebreak and ecall will end up in this block
@@ -104,9 +125,24 @@ module decoder (
                     fault <= 1;
                 end
             endcase
-        end else begin
-            o_valid <= 1'b0;
         end
     end
+
+    (* always_ff *)
+    always @(posedge clk or negedge n_rst) begin
+        if (!n_rst | up_clear) begin
+            raw_stall <= 2'b0;
+        end else if (up_valid & dw_ready) begin
+            if (raw_stall == 2'b0) begin
+                if (raw) begin
+                    raw_stall <= 2'b10;
+                end
+            end else begin
+                raw_stall <= raw_stall - 1;
+            end
+        end
+    end
+
+    assign up_ready = dw_ready & !(dw_valid & raw & !up_clear) & raw_stall == 2'b0;
 
 endmodule

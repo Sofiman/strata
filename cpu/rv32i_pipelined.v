@@ -2,34 +2,48 @@ module rv32i (
     input rst,
     input clk,
 
-    output [5:0] leds,
+    output        mem_valid,
+    input         mem_ready,
+    output [31:0] mem_addr,
+    output [ 3:0] mem_strobe,
+    output [31:0] mem_write_data,
+    input  [31:0] mem_read_data,
+    input         mem_fault,
+
     output [127:0] snoop_data
 );
 
     wire n_rst = !rst;
 
     wire        stage1__i__valid = 1'b1;
-    wire        stage1__i__busy;
+    wire        stage1__i__ready;
     wire        stage1__o__valid;
-    wire        stage1__o__busy;
+    wire        stage1__o__ready;
     wire [31:0] stage1__o__pc;
     wire [31:0] stage1__o__inst;
 
+    wire        stage1__i__pc_write_en;
+    wire [31:0] stage1__i__pc_next;
+
     stage1 s1 (
-        .n_rst(n_rst),
-        .clk(clk),
+        .n_rst         (n_rst),
+        .clk           (clk),
 
-        .i__valid(stage1__i__valid),
-        .i__busy (stage1__i__busy ),
+        .up_valid      (stage1__i__valid),
+        .dw_ready      (stage1__i__ready ),
 
-        .o__valid(stage1__o__valid),
-        .o__busy (stage1__o__busy ),
-        .o__pc(stage1__o__pc),
-        .o__inst(stage1__o__inst)
+        .i__pc_write_en(stage1__i__pc_write_en),
+        .i__pc_next    (stage1__i__pc_next),
+
+
+        .dw_valid      (stage1__o__valid),
+        .up_ready      (stage1__o__ready ),
+        .o__pc         (stage1__o__pc),
+        .o__inst       (stage1__o__inst)
     );
 
     wire        stage2__o__valid;
-    wire        stage2__i__busy;
+    wire        stage2__i__ready;
     wire        stage2__o__alu_en;
     wire        stage2__o__mem_en;
     wire        stage2__o__bru_en;
@@ -46,13 +60,14 @@ module rv32i (
         .n_rst          (n_rst),
         .clk            (clk),
 
-        .i__valid       (stage1__o__valid),
-        .i__busy        (stage2__i__busy ),
+        .i__clear       (stage1__i__pc_write_en),
+        .up_valid       (stage1__o__valid),
+        .dw_ready       (stage2__i__ready ),
         .i__pc          (stage1__o__pc),
         .i__inst        (stage1__o__inst),
 
-        .o__valid       (stage2__o__valid),
-        .o__busy        (stage1__i__busy ),
+        .dw_valid       (stage2__o__valid),
+        .up_ready       (stage1__i__ready ),
 
         .o__alu_en      (stage2__o__alu_en),
         .o__mem_en      (stage2__o__mem_en),
@@ -71,7 +86,7 @@ module rv32i (
     );
 
     wire        stage3__o__valid;
-    wire        stage3__i__busy;
+    wire        stage3__i__ready;
     wire [ 4:0] stage3__o__rf_addr_out;
     wire [31:0] stage3__o__rf_wr_data;
 
@@ -79,8 +94,9 @@ module rv32i (
         .n_rst          (n_rst),
         .clk            (clk),
 
-        .i__valid       (stage2__o__valid),
-        .i__busy        (stage3__i__busy ),
+        .i__clear       (stage1__i__pc_write_en),
+        .up_valid       (stage2__o__valid),
+        .dw_ready       (stage3__i__ready ),
         .i__alu_en      (stage2__o__alu_en),
         .i__mem_en      (stage2__o__mem_en),
         .i__bru_en      (stage2__o__bru_en),
@@ -89,11 +105,21 @@ module rv32i (
         .i__op_b        (stage2__o__op_b),
         .i__rf_addr_out (stage2__o__rf_addr_out),
 
-        .o__valid       (stage3__o__valid),
-        .o__busy        (stage2__i__busy ),
+        .dw_valid       (stage3__o__valid),
+        .up_ready       (stage2__i__ready ),
         .o__rf_addr_out (stage3__o__rf_addr_out),
         .o__rf_wr_data  (stage3__o__rf_wr_data),
-        .leds           (leds)
+
+        .o__pc_write_en (stage1__i__pc_write_en),
+        .o__pc_next     (stage1__i__pc_next),
+
+        .mem_valid      (mem_valid),
+        .mem_ready      (mem_ready),
+        .mem_addr       (mem_addr),
+        .mem_strobe     (mem_strobe),
+        .mem_write_data (mem_write_data),
+        .mem_read_data  (mem_read_data),
+        .mem_fault      (mem_fault)
 
         `BENCH_STAGE_BOND(s2)
     );
@@ -106,9 +132,10 @@ module rv32i (
         .n_rst          (n_rst),
         .clk            (clk),
 
-        .i__valid       (stage3__o__valid),
-        .i__busy        (1'b0),
-        .o__busy        (stage3__i__busy ),
+        .i__clear       (1'b0),
+        .up_valid       (stage3__o__valid),
+        .dw_ready       (1'b1),
+        .up_ready       (stage3__i__ready ),
         .i__rf_addr_out (stage3__o__rf_addr_out),
         .i__rf_wr_data  (stage3__o__rf_wr_data),
 
@@ -134,10 +161,18 @@ module rv32i (
     );
 
     assign snoop_data = {
-        stage1__o__valid, stage1__i__busy,
-        stage2__o__valid, stage2__i__busy,
-        stage3__o__valid, stage3__i__busy
+        stage1__o__valid, stage1__i__ready,
+        stage2__o__valid, stage2__i__ready,
+        stage3__o__valid, stage3__i__ready
     };
+
+    task wait_inst_retire();
+        begin
+            wait(stage3__o__valid);
+            @(posedge clk);
+            #(`CLK_HALF_PERIOD/16);
+        end
+    endtask
 
 endmodule
 
@@ -149,6 +184,8 @@ endmodule
 // - [ ] Multiply extension
 // - [ ] Divide extension
 // - [.] Pipelining (https://zipcpu.com/blog/2017/08/14/strategies-for-pipelining.html, https://zipcpu.com/zipcpu/2017/08/23/cpu-pipeline.html)
+//   - [.] RAW ready cycle insertion
+//   - [ ] RAW forwarding in stage3 for 0 cycle wait
 // - [ ] Simpl branch predictor (same-as-before, two-mispredictions-in-a-row) -- Source: https://www.youtube.com/watch?v=mGCClZpjX0g, https://danluu.com/branch-prediction/
 // - [ ] Zihintpause
 // - [ ] Zicsr: CSRs

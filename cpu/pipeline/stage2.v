@@ -4,10 +4,11 @@ module stage2 (
     input         n_rst,
     input         clk,
 
-    input         i__valid,
-    input         i__busy,
-    output        o__valid,
-    output        o__busy,
+    input         i__clear,
+    input         up_valid,
+    input         dw_ready,
+    output        dw_valid,
+    output        up_ready,
 
     input [31:0]  i__pc,
     input [31:0]  i__inst,
@@ -34,15 +35,15 @@ module stage2 (
         .clk(clk),
         .n_rst(n_rst),
 
-        .pc(i__pc),
-        .inst(i__inst),
+        .up_clear(i__clear),
 
-        .i_valid(i__valid),
-        .i_busy (i__busy ),
-        .o_valid(o__valid),
-        .o_busy (o__busy ),
+        .up_valid(up_valid),
+        .up_ready(up_ready),
+        .up_pc(i__pc),
+        .up_inst(i__inst),
 
-        .fault(),
+        .dw_valid(dw_valid),
+        .dw_ready(dw_ready),
 
         .alu_en(o__alu_en),
         .mem_en(o__mem_en),

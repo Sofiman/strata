@@ -1,4 +1,4 @@
-module pipeline_buffer #(
+module pipeline_buffer_delay #(
     parameter DATA_WIDTH = 1'b1
 ) (
     input clk,
@@ -18,18 +18,32 @@ module pipeline_buffer #(
     //                 |            |
     // <--[up_ready]---|============|<--[dw_ready]---
 
+    reg clock_enable;
+    reg [DATA_WIDTH-1:0] work;
+    reg i;
+
     always @(posedge clk or negedge n_rst) begin
         if (!n_rst) begin
             dw_valid <= 1'b0;
-        end else if (dw_ready)
-            dw_valid <= up_valid;
+            clock_enable <= 1'b0;
+        end else if (clock_enable) begin
+
+            // Actual compute
+            dw_data <= work + 1;
+
+            // When the compute is done
+            clock_enable <= 1'b0;
+            dw_valid <= 1'b1;
+        end else if (dw_ready) begin
+            dw_valid <= 1'b0;
+            if (up_valid) begin
+                // Init compute
+                clock_enable <= 1'b1;
+                work <= up_data;
+            end
+        end
     end
 
-    always @(posedge clk) begin
-        if (up_valid & dw_ready)
-            dw_data  <= up_data;
-    end
-
-    assign up_ready = dw_ready;
+    assign up_ready = dw_ready & !clock_enable; // TODO
 
 endmodule

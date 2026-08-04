@@ -2,6 +2,12 @@ module alu (
     input clk,
     input n_rst,
 
+    input  up_valid,
+    output up_ready,
+
+    output reg dw_valid,
+    input      dw_ready,
+
     input [2:0]  op,
     input        op_alt,
     input [31:0] a,
@@ -29,10 +35,18 @@ module alu (
     `endif
 
     (* always_ff *)
-    always @(posedge clk) begin
+    always @(posedge clk or negedge n_rst) begin
         if (!n_rst) begin
-            out <= 0;
-        end else begin
+            dw_valid <= 1'b0;
+        end else if (dw_ready)
+            dw_valid <= up_valid;
+    end
+
+    assign up_ready = dw_ready;
+
+    (* always_ff *)
+    always @(posedge clk) begin
+        if (up_valid & dw_ready) begin
             case (op)
                 INT_FUNC3_ADD:  out <= a + (op_alt ? -b : b);
                 INT_FUNC3_SLL:  out <= a << b[4:0];

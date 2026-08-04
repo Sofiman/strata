@@ -4,10 +4,11 @@ module stage3 (
     input             n_rst,
     input             clk,
 
-    input             i__valid,
-    input             i__busy,
-    output            o__valid,
-    output            o__busy,
+    input             i__clear,
+    input             up_valid,
+    input             dw_ready,
+    output            dw_valid,
+    output            up_ready,
 
     input             i__alu_en,
     input             i__mem_en,
@@ -20,26 +21,56 @@ module stage3 (
     output reg [ 4:0] o__rf_addr_out,
     output     [31:0] o__rf_wr_data,
 
-    output      [5:0] leds
+    output            o__pc_write_en,
+    output     [31:0] o__pc_next,
+
+    output        mem_valid,
+    input         mem_ready,
+    output [31:0] mem_addr,
+    output [ 3:0] mem_strobe,
+    output [31:0] mem_write_data,
+    input  [31:0] mem_read_data,
+    input         mem_fault
 
     `BENCH_STAGE_INOUT
 );
 
     `BENCH_STAGE_LOGIC
 
-    always @(posedge clk) if (i__valid & !o__busy) o__rf_addr_out <= i__rf_addr_out;
+    (* always_ff *)
+    always @(posedge clk) if (up_valid & up_ready) o__rf_addr_out <= i__rf_addr_out;
+
+    reg r_alu_en;
+    (* always_ff *)
+    always @(posedge clk) if (up_valid & up_ready) r_alu_en <= i__alu_en;
+
+    reg r_mem_en;
+    (* always_ff *)
+    always @(posedge clk) if (up_valid & up_ready) r_mem_en <= i__mem_en;
+
+    reg r_bru_en;
+    (* always_ff *)
+    always @(posedge clk) if (up_valid & up_ready) r_bru_en <= i__bru_en;
 
     wire [31:0] alu_out;
-    wire [31:0] mem_out;
-    wire        mem_busy;
-    wire        mem_valid;
+    wire        alu_valid;
+    wire        alu_ready;
 
-    reg alu_valid;
-    always @(posedge clk) if (i__valid) alu_valid <= i__alu_en;
+    wire [31:0] lsu_out;
+    wire        lsu_valid;
+    wire        lsu_ready;
+
+    wire        bru_valid;
+    wire        bru_ready;
 
     alu alu (
         .clk    (clk),
         .n_rst  (n_rst),
+
+        .up_valid(i__alu_en & up_valid),
+        .up_ready(alu_ready),
+        .dw_valid(alu_valid),
+        .dw_ready(dw_ready),
 
         .op     (i__op[2:0]),
         .op_alt (i__op[3]),
@@ -49,43 +80,63 @@ module stage3 (
         .out    (alu_out)
     );
 
+    reg [31:0] op_addr;
+    always @(posedge clk) if (up_valid & up_ready) op_addr <= i__op_a + $signed(i__op_b);
 
-    wire [31:0] op_addr = i__op_a + $signed(i__op_b);
-    load_store u_load_store (
+    load_store lsu (
         .n_rst(n_rst),
         .clk(clk),
 
-        .addr(op_addr),
-        .op(i__op),
-        .data_in('h66666666),
-        .data_out(mem_out),
+        .up_valid(i__mem_en & up_valid),
+        .up_ready(lsu_ready),
 
-        .i_valid(i__valid & !i__busy & i__mem_en),
-        .o_valid(mem_valid),
-        .o_busy(mem_busy),
+        .dw_valid(lsu_valid),
+        .dw_ready(dw_ready),
 
-        .leds(leds)
+        .up_addr(op_addr),
+        .up_op(i__op),
+        .up_data_in('h66666666),
+        .dw_data_out(lsu_out),
+
+        .mem_valid(mem_valid),
+        .mem_ready(mem_ready),
+        .mem_addr(mem_addr),
+        .mem_strobe(mem_strobe),
+        .mem_write_data(mem_write_data),
+        .mem_read_data(mem_read_data),
+        .mem_fault(mem_fault)
     );
 
-    /*
     bru bru (
         .clk(clk),
         .n_rst(n_rst),
 
-        .i_valid(bru_en),
+        .up_valid(i__bru_en & up_valid),
+        .up_ready(bru_ready),
 
-        .op(op),
-        .addr(op_addr),
-        .rf_a(rf_a),
-        .rf_b(rf_b),
-        .pc(pc),
+        .dw_valid(bru_valid),
+        .dw_ready(dw_ready),
 
-        .pc_next(pc_next)
-    );*/
+        .up_op(i__op),
+        .up_addr(op_addr),
+        .up_rf_a(32'b0),
+        .up_rf_b(32'b0),
 
+        .dw_pc_write_en(o__pc_write_en),
+        .dw_pc_next(o__pc_next)
+    );
 
-    assign o__rf_wr_data = alu_valid ? alu_out : mem_out;
-    assign o__valid      = alu_valid ? 1'b1 : (mem_valid & !mem_busy);
-    assign o__busy       = i__busy | mem_busy;
+     assign o__rf_wr_data = //alu_out ?
+           ({32{r_alu_en}} & alu_out)
+         | ({32{r_mem_en}} & lsu_out);
+     assign dw_valid = !i__clear &
+        (  (r_alu_en & alu_valid)
+         | (r_mem_en & lsu_valid)
+         | (r_bru_en & bru_valid)
+        );
+     assign up_ready =
+           (!r_alu_en | alu_ready)
+         & (!r_mem_en | lsu_ready)
+         & (!r_bru_en | bru_ready);
 
 endmodule

@@ -4,9 +4,10 @@ module stage4 (
     input             n_rst,
     input             clk,
 
-    input             i__valid,
-    input             i__busy,
-    output            o__busy,
+    input             i__clear,
+    input             up_valid,
+    input             dw_ready,
+    output            up_ready,
 
     input      [ 4:0] i__rf_addr_out,
     output reg [ 4:0] o__rf_addr_out,
@@ -19,9 +20,9 @@ module stage4 (
 
     `BENCH_STAGE_LOGIC
 
-    always @(posedge clk) if (i__valid && !i__busy) o__rf_addr_out <= i__rf_addr_out;
-    always @(posedge clk) if (i__valid && !i__busy)  o__rf_wr_data <= i__rf_wr_data;
-    always @(posedge clk) o__rf_wr_en   <= i__valid && !i__busy;
-    assign o__busy       = i__busy;
+    always @(posedge clk) if (up_valid && dw_ready) o__rf_addr_out <= i__rf_addr_out;
+    always @(posedge clk) if (up_valid && dw_ready)  o__rf_wr_data <= i__rf_wr_data;
+    always @(posedge clk) o__rf_wr_en   <= up_valid && dw_ready;
+    assign up_ready       = dw_ready;
 
 endmodule

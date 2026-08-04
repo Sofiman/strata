@@ -1,35 +1,43 @@
 module bru (
-    input n_rst,
-    input clk,
+    input             n_rst,
+    input             clk,
 
-    input i_valid,
+    input             up_valid,
+    output            up_ready,
+    output reg        dw_valid,
+    input             dw_ready,
 
-    input [3:0] op,
-    input [31:0] addr,
-    input [31:0] rf_a,
-    input [31:0] rf_b,
-    input [31:0] pc,
+    input      [ 3:0] up_op,
+    input      [31:0] up_addr,
+    input      [31:0] up_rf_a,
+    input      [31:0] up_rf_b,
 
-    output [31:0] pc_next
+    output            dw_pc_write_en,
+    output     [31:0] dw_pc_next
 );
 
     `include "cfg/rv_isa_opcode.v"
 
-    reg branch_taken;
-
-    (* always_comb *)
+    (* always_ff *)
     always @(posedge clk or negedge n_rst) begin
         if (!n_rst) begin
-            branch_taken <= 0;
-        end else if (i_valid) begin
-            branch_taken <= 0;
-            case (op[2:0])
-                BRANCH_FUNCT3_BEQ:  branch_taken <= rf_a == rf_b;
-                BRANCH_FUNCT3_BNE:  branch_taken <= rf_a != rf_b;
-                BRANCH_FUNCT3_BLT:  branch_taken <= $signed(rf_a) < $signed(rf_b);
-                BRANCH_FUNCT3_BGE:  branch_taken <= $signed(rf_a) >= $signed(rf_b);
-                BRANCH_FUNCT3_BLTU: branch_taken <= rf_a < rf_b;
-                BRANCH_FUNCT3_BGEU: branch_taken <= rf_a >= rf_b;
+            dw_valid <= 1'b0;
+        end else if (dw_ready)
+            dw_valid <= up_valid;
+    end
+
+    reg branch_taken;
+
+    always @(posedge clk) begin
+        if (up_valid & dw_ready) begin
+            branch_taken <= 1'b0;
+            case (up_op[2:0])
+                BRANCH_FUNCT3_BEQ:  branch_taken <= up_rf_a == up_rf_b;
+                BRANCH_FUNCT3_BNE:  branch_taken <= up_rf_a != up_rf_b;
+                BRANCH_FUNCT3_BLT:  branch_taken <= $signed(up_rf_a) < $signed(up_rf_b);
+                BRANCH_FUNCT3_BGE:  branch_taken <= $signed(up_rf_a) >= $signed(up_rf_b);
+                BRANCH_FUNCT3_BLTU: branch_taken <= up_rf_a < up_rf_b;
+                BRANCH_FUNCT3_BGEU: branch_taken <= up_rf_a >= up_rf_b;
                 default: begin
                     // TODO: Illegal instruction
                 end
@@ -37,6 +45,8 @@ module bru (
         end
     end
 
-    assign pc_next = i_valid & (branch_taken | !op[3]) ? addr : (pc + 4);
+    assign up_ready = dw_ready;
+    assign dw_pc_next = up_addr;
+    assign dw_pc_write_en = dw_valid & branch_taken;
 
 endmodule

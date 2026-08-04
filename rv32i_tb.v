@@ -27,12 +27,43 @@ module rv32i_tb();
 
     `include "cfg/rv_isa_registers.v"
 
+    wire mem_valid;
+    wire mem_ready;
+    wire [31:0] mem_addr;
+    wire [3:0] mem_strobe;
+    wire [31:0] mem_write_data;
+    wire [31:0] mem_read_data;
+    wire mem_fault;
+
     rv32i uut (
         .rst(rst),
         .clk(clk),
+
+        .mem_valid(mem_valid),
+        .mem_ready(mem_ready),
+        .mem_addr(mem_addr),
+        .mem_strobe(mem_strobe),
+        .mem_write_data(mem_write_data),
+        .mem_read_data(mem_read_data),
+        .mem_fault(mem_fault)
+    );
+
+    memory_subsys mss (
+        .n_rst(!rst),
+        .clk(clk),
+
+        .mem_valid(mem_valid),
+        .mem_ready(mem_ready),
+        .mem_addr(mem_addr),
+        .mem_strobe(mem_strobe),
+        .mem_write_data(mem_write_data),
+        .mem_read_data(mem_read_data),
+        .mem_fault(mem_fault),
+
         .leds(leds)
     );
 
+`ifdef SEQ
     //task wait_inst_retire();
     //    begin
     //        wait(uut.state !== uut.S_WRITEBACK);
@@ -42,6 +73,11 @@ module rv32i_tb();
     //endtask
 
     //wire [31:0] pc = uut.u_ifetch.retired_inst_pc;
+`endif
+
+    task wait_inst_retire();
+        uut.wait_inst_retire();
+    endtask
 
     initial begin
         $display("\n--- RESET ---");

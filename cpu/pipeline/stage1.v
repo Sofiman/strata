@@ -2,13 +2,16 @@ module stage1 (
     input         n_rst,
     input         clk,
 
-    input         i__valid,
-    input         i__busy,
-    output        o__valid,
-    output        o__busy,
+    input         up_valid,
+    input         dw_ready,
+    output        dw_valid,
+    output        up_ready,
 
     output [31:0] o__pc,
-    output [31:0] o__inst
+    output [31:0] o__inst,
+
+    input         i__pc_write_en,
+    input  [31:0] i__pc_next
 );
 
     wire [31:0] _b__o__inst = o__inst;
@@ -17,18 +20,15 @@ module stage1 (
         .n_rst(n_rst),
         .clk(clk),
 
-        .addr_write_enable(1'b1),
-        .addr(o__pc + 4),
+        .up_addr_write_enable(i__pc_write_en),
+        .up_addr(i__pc_next),
+        .up_ready(up_ready),
+        .up_valid(up_valid),
 
-        .pc(o__pc),
-        .inst(o__inst),
-
-        .i_busy(i__busy),
-        .i_valid(i__valid),
-        .o_busy(o__busy),
-        .o_valid(o__valid)
+        .dw_valid(dw_valid),
+        .dw_ready(dw_ready),
+        .dw_pc(o__pc),
+        .dw_inst(o__inst)
     );
-
-    // TODO: Hazard detection, RAW hanndling
 
 endmodule
